@@ -1,0 +1,383 @@
+/* ============================================================================
+   Teorie Grafů — Vlastní styly
+   Light theme — PEF MENDELU (Modrá, Bílá, Šedá)
+   ============================================================================ */
+
+/* ---------- Globals ---------- */
+:root {
+    --primary-color: #0054a6; /* PEF Blue */
+    --primary-gradient: linear-gradient(135deg, #0054a6 0%, #007bff 100%);
+    --card-hover-shadow: 0 8px 32px rgba(0, 84, 166, 0.1);
+    --glass-bg: rgba(255, 255, 255, 0.95);
+    --bg-color: #f4f6f9;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-color);
+    color: #000000;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.text-dark {
+    color: #000000 !important;
+}
+
+.text-muted {
+    color: #495057 !important;
+}
+
+main {
+    flex: 1;
+}
+
+/* ---------- Navbar ---------- */
+.navbar {
+    backdrop-filter: blur(12px);
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #dee2e6 !important;
+}
+
+.navbar-brand {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--primary-color) !important;
+    letter-spacing: -0.02em;
+}
+
+.nav-link {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: #495057 !important;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.nav-link:hover {
+    transform: translateY(-1px);
+    color: var(--primary-color) !important;
+}
+
+.nav-link.active {
+    color: var(--primary-color) !important;
+    font-weight: 600;
+}
+
+/* ---------- Hero Section ---------- */
+.hero-section {
+    background: radial-gradient(ellipse at center top, rgba(0, 84, 166, 0.05) 0%, transparent 70%);
+    border-radius: 1rem;
+    padding: 3rem 2rem;
+}
+
+.hero-icon {
+    font-size: 4rem;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* ---------- Feature Cards ---------- */
+.feature-card {
+    background: #ffffff !important;
+    border: 1px solid #dee2e6 !important;
+    transition: all 0.3s ease;
+    cursor: default;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--card-hover-shadow);
+    border-color: rgba(0, 84, 166, 0.2) !important;
+}
+
+.feature-icon {
+    font-size: 2.2rem;
+    color: var(--primary-color);
+}
+
+/* ---------- Cards General ---------- */
+.card {
+    border-radius: 0.75rem;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.card-header {
+    background-color: rgba(248, 249, 250, 0.8) !important;
+    font-weight: 600;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* ---------- Graph Card (export page) ---------- */
+.graph-card {
+    transition: all 0.25s ease;
+}
+
+.graph-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-hover-shadow);
+    border-color: rgba(0, 84, 166, 0.3) !important;
+}
+
+/* ---------- Form Enhancements ---------- */
+.form-control,
+.form-select {
+    background-color: #ffffff;
+    border-color: #ced4da;
+    color: #495057;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: #ffffff;
+    border-color: var(--primary-color);
+    color: #212529;
+    box-shadow: 0 0 0 3px rgba(0, 84, 166, 0.15);
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* ---------- Buttons ---------- */
+.btn-primary {
+    background: var(--primary-color);
+    border: none;
+    font-weight: 600;
+    color: white;
+    transition: all 0.25s ease;
+}
+
+.btn-primary:hover {
+    background: #004b87;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 84, 166, 0.2);
+}
+
+.btn-outline-primary {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background: rgba(0, 84, 166, 0.05);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-outline-secondary {
+    color: #6c757d;
+    border-color: #dee2e6;
+}
+.btn-outline-secondary:hover {
+    background: #e9ecef;
+    color: #212529;
+    border-color: #ced4da;
+}
+
+/* ---------- Tables ---------- */
+.table th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c757d;
+}
+
+/* ---------- Tabs ---------- */
+.nav-tabs {
+    border-bottom: none;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #212529;
+    border-color: #dee2e6;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    background: transparent;
+    border-color: var(--primary-color);
+}
+
+/* ---------- Footer ---------- */
+footer {
+    background-color: #ffffff;
+    border-top: 1px solid #dee2e6 !important;
+}
+
+/* ---------- Alerts ---------- */
+.alert {
+    border-radius: 0.75rem;
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f3f5;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #adb5bd;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6c757d;
+}
+
+/* ============================================================================
+   VISUALIZER STYLES
+   ============================================================================ */
+
+/* ---------- SVG Graph ---------- */
+.graph-edge {
+    transition: stroke 0.3s ease, stroke-width 0.3s ease;
+}
+
+.node-circle {
+    transition: fill 0.3s ease, stroke 0.3s ease;
+    cursor: grab;
+}
+.node-circle:active {
+    cursor: grabbing;
+}
+
+.weight-label {
+    pointer-events: none;
+    user-select: none;
+}
+.graph-node text {
+    pointer-events: none;
+    user-select: none;
+}
+
+/* ---------- Step Log ---------- */
+.steps-log {
+    font-size: 0.82rem;
+}
+
+.step-log-item {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #e9ecef;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    transition: background 0.15s ease;
+}
+
+.step-log-item:hover {
+    background: #f8f9fa;
+}
+
+.step-log-item.step-log-active {
+    background: rgba(0, 84, 166, 0.05);
+    border-left: 3px solid var(--primary-color);
+}
+
+.step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #e9ecef;
+    color: #495057;
+    font-size: 0.7rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.step-text {
+    color: #212529;
+    line-height: 1.4;
+}
+
+.step-accept .step-num { background: #198754; color: white; }
+.step-reject .step-num { background: #dc3545; color: white; }
+.step-examine .step-num { background: #ffc107; color: #212529; }
+.step-done .step-num { background: var(--primary-color); color: white; }
+
+/* ---------- Accordion (Documentation) ---------- */
+.accordion-button {
+    font-weight: 600;
+    font-size: 1rem;
+    background-color: #ffffff;
+    color: var(--primary-color);
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: rgba(0, 84, 166, 0.05) !important;
+    color: var(--primary-color) !important;
+    box-shadow: none;
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 3px rgba(0, 84, 166, 0.15);
+}
+
+.accordion-body {
+    background: #ffffff;
+}
+
+.accordion-body pre {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e9ecef;
+    overflow-x: auto;
+}
+
+.accordion-body pre code {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #212529;
+}
+
+/* ---------- Progress bar ---------- */
+.progress {
+    background: #e9ecef;
+    border-radius: 2px;
+}
+
+.progress-bar {
+    background: var(--primary-gradient);
+    transition: width 0.3s ease;
+}
+
+/* ---------- Control buttons ---------- */
+#controlButtons .btn {
+    min-width: 36px;
+}
+
+#controlButtons .btn-primary {
+    min-width: 48px;
+}

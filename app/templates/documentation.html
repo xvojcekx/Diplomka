@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+
+{% block title %}Dokumentace algoritmů{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-book-fill text-primary fs-3 me-3"></i>
+    <div>
+        <h1 class="h3 mb-0">Dokumentace algoritmů</h1>
+        <p class="text-muted mb-0 small">Jak fungují jednotlivé algoritmy</p>
+    </div>
+</div>
+
+<div class="accordion" id="algoAccordion">
+
+    <!-- Kruskal -->
+    <div class="accordion-item bg-white shadow-sm border-light-subtle">
+        <h2 class="accordion-header">
+            <button class="accordion-button bg-white shadow-sm text-dark" type="button" data-bs-toggle="collapse"
+                data-bs-target="#kruskal">
+                <i class="bi bi-tree me-2 text-primary"></i>
+                Kruskalův algoritmus — Minimální kostra (MST)
+            </button>
+        </h2>
+        <div id="kruskal" class="accordion-collapse collapse show" data-bs-parent="#algoAccordion">
+            <div class="accordion-body">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <h5>Princip</h5>
+                        <p>
+                            Kruskalův algoritmus hledá <strong>minimální kostru</strong> (Minimum Spanning Tree)
+                            v neorientovaném souvislém ohodnoceném grafu. Kostra je podgraf, který spojuje
+                            všechny uzly s minimální celkovou váhou hran a neobsahuje cykly.
+                        </p>
+
+                        <h5>Postup krok za krokem</h5>
+                        <ol>
+                            <li><strong>Seřaď</strong> všechny hrany grafu vzestupně podle váhy</li>
+                            <li><strong>Inicializuj</strong> datovou strukturu Union-Find — každý uzel je vlastní
+                                komponenta</li>
+                            <li><strong>Iteruj</strong> přes seřazené hrany (od nejlehčí):
+                                <ul>
+                                    <li>Pokud oba konce hrany patří do <strong>různých komponent</strong> → hranu <span
+                                            class="badge bg-success">PŘIJMI</span> a slučí komponenty</li>
+                                    <li>Pokud jsou oba konce ve <strong>stejné komponentě</strong> → hranu <span
+                                            class="badge bg-danger">ZAMÍTNI</span> (vznikl by cyklus)</li>
+                                </ul>
+                            </li>
+                            <li><strong>Konec</strong> — jakmile máme n-1 hran (kde n = počet uzlů)</li>
+                        </ol>
+
+                        <h5>Časová složitost</h5>
+                        <p><code>O(E log E)</code> — kde E je počet hran (dominuje řazení hran)</p>
+
+                        <h5>Kdy použít</h5>
+                        <p>Ideální pro <strong>řídké grafy</strong> (málo hran). Funguje pouze pro neorientované
+                            souvislé grafy.</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card bg-white shadow-sm border-light-subtle">
+                            <div class="card-header border-light-subtle"><strong>Pseudokód</strong></div>
+                            <div class="card-body">
+                                {% raw %}
+                                <pre class="text-dark mb-0"><code>KRUSKAL(G):
+  MST = ∅
+  seřaď hrany G dle váhy
+  inicializuj Union-Find
+
+  pro každou hranu (u, v, w):
+    pokud FIND(u) ≠ FIND(v):
+      MST = MST ∪ {(u, v)}
+      UNION(u, v)
+
+  vrať MST</code></pre>{% endraw %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Borůvka -->
+    <div class="accordion-item bg-white shadow-sm border-light-subtle">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white shadow-sm text-dark" type="button"
+                data-bs-toggle="collapse" data-bs-target="#boruvka">
+                <i class="bi bi-tree me-2 text-primary"></i>
+                Borůvkův algoritmus — Minimální kostra (MST)
+            </button>
+        </h2>
+        <div id="boruvka" class="accordion-collapse collapse" data-bs-parent="#algoAccordion">
+            <div class="accordion-body">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <h5>Princip</h5>
+                        <p>
+                            Borůvkův algoritmus (také Borůvka-Sollin) je dalším způsobem hledání minimální
+                            kostry. Na rozdíl od Kruskala, který řadí hrany globálně, Borůvkův algoritmus
+                            pracuje <strong>paralelně po komponentách</strong>.
+                        </p>
+
+                        <h5>Postup krok za krokem</h5>
+                        <ol>
+                            <li><strong>Inicializuj</strong> — každý uzel je samostatná komponenta</li>
+                            <li><strong>Opakuj</strong> dokud existuje více než 1 komponenta:
+                                <ul>
+                                    <li>Pro <strong>každou komponentu</strong> najdi nejlevnější hranu, která vede do
+                                        jiné komponenty</li>
+                                    <li>Všechny takto nalezené hrany <span class="badge bg-success">PŘIJMI</span> a
+                                        slouč příslušné komponenty</li>
+                                </ul>
+                            </li>
+                            <li><strong>Konec</strong> — všechny uzly jsou v jedné komponentě</li>
+                        </ol>
+
+                        <h5>Časová složitost</h5>
+                        <p><code>O(E log V)</code> — kde E = hrany, V = uzly</p>
+
+                        <h5>Rozdíl oproti Kruskalovi</h5>
+                        <p>
+                            Borůvka nečeká na globální řazení hran, místo toho v každé iteraci
+                            <strong>každá komponenta</strong> vybere svou nejlevnější hranu. Může přidat více hran
+                            najednou.
+                            Je historicky nejstarší algoritmus pro MST (1926, Brno!).
+                        </p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card bg-white shadow-sm border-light-subtle">
+                            <div class="card-header border-light-subtle"><strong>Pseudokód</strong></div>
+                            <div class="card-body">
+                                {% raw %}
+                                <pre class="text-dark mb-0"><code>BORŮVKA(G):
+  MST = ∅
+  komponenty = {{v} pro v ∈ V}
+
+  dokud |komponenty| > 1:
+    pro každou komponentu C:
+      najdi nejlevnější hranu (u,v)
+        kde u∈C a v∉C
+      MST = MST ∪ {(u, v)}
+      slouč C s komponentou v
+
+  vrať MST</code></pre>{% endraw %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dijkstra -->
+    <div class="accordion-item bg-white shadow-sm border-light-subtle">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white shadow-sm text-dark" type="button"
+                data-bs-toggle="collapse" data-bs-target="#dijkstra">
+                <i class="bi bi-signpost-split me-2 text-primary"></i>
+                Dijkstrův algoritmus — Nejkratší cesta
+            </button>
+        </h2>
+        <div id="dijkstra" class="accordion-collapse collapse" data-bs-parent="#algoAccordion">
+            <div class="accordion-body">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <h5>Princip</h5>
+                        <p>
+                            Dijkstrův algoritmus hledá <strong>nejkratší cestu</strong> z jednoho zdrojového
+                            uzlu do cílového (nebo do všech ostatních). Funguje na grafech s
+                            <strong>nezápornými vahami</strong>.
+                        </p>
+
+                        <h5>Postup krok za krokem</h5>
+                        <ol>
+                            <li><strong>Inicializuj</strong> — vzdálenost zdroje = 0, všech ostatních = ∞</li>
+                            <li><strong>Vlož</strong> zdroj do prioritní fronty (min-heap)</li>
+                            <li><strong>Opakuj</strong> dokud fronta není prázdná:
+                                <ul>
+                                    <li>Vyjmi uzel <em>u</em> s nejmenší vzdáleností</li>
+                                    <li>Pro každého souseda <em>v</em> uzlu <em>u</em>:
+                                        <ul>
+                                            <li>Spočítej novou vzdálenost: <code>dist[u] + w(u,v)</code></li>
+                                            <li>Pokud je menší než <code>dist[v]</code> → <span
+                                                    class="badge bg-success">aktualizuj</span> (relakace)</li>
+                                            <li>Jinak → <span class="badge bg-danger">přeskoč</span></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li><strong>Rekonstrukce</strong> cesty zpětným průchodem přes předchůdce</li>
+                        </ol>
+
+                        <h5>Časová složitost</h5>
+                        <p><code>O((V + E) log V)</code> — s binární haldou</p>
+
+                        <h5>Omezení (Záporné váhy)</h5>
+                        <div class="alert alert-danger px-3 py-3 border-danger-subtle bg-danger bg-opacity-10" role="alert">
+                            <h6 class="alert-heading text-danger fw-bold mb-2">
+                                <i class="bi bi-exclamation-octagon-fill me-2"></i>Kritické chování při záporných mírách
+                            </h6>
+                            <p class="mb-0 small text-dark text-justify">
+                                Dijkstrův algoritmus <strong>nefunguje správně</strong> pro grafy se zápornými vahami hran. Základní princip algoritmu stojí na faktu, že jakmile uzel vybere z prioritní fronty (tzn. ho uzavře/dokončí), striktně předpokládá, že už do něj neexistuje žádná kratší cesta. Pokud ale graf obsahuje zápornou hranu, mohlo by přidání dalšího kroku paradoxně celkovou vzdálenost zmenšit a zlevnit cestu do dříve uzavřeného uzlu!
+                                <br><br>
+                                V generátoru naší apikace si to můžete snadno nasimulovat povolením záporných vah (např. do -10). Při vizualizaci algoritmu pak zřetelně uvidíte, jak Dijkstra vyhodnotí cestu sub-optimálně – nevšimne si, že oklikou skrze zápornou hranu to vyšlo lépe. Jestliže navíc graf obsahuje <strong>záporný cyklus</strong> (cesta do kruhu se záporným součtem), ztratilo by hledání nejkratší trasy úplně matematický smysl. V reálné praxi se pro zpracování jakýchkoliv záporných hran používá robustnější <strong>Bellman-Fordův algoritmus</strong>.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card bg-white shadow-sm border-light-subtle">
+                            <div class="card-header border-light-subtle"><strong>Pseudokód</strong></div>
+                            <div class="card-body">
+                                {% raw %}
+                                <pre class="text-dark mb-0"><code>DIJKSTRA(G, zdroj, cíl):
+  dist[v] = ∞ pro ∀v ∈ V
+  dist[zdroj] = 0
+  prev[v] = null
+  PQ = {(0, zdroj)}
+
+  dokud PQ není prázdná:
+    (d, u) = PQ.vyber_min()
+    pokud u == cíl: KONEC
+
+    pro (u, v, w) ∈ hrany(u):
+      pokud d + w < dist[v]:
+        dist[v] = d + w
+        prev[v] = u
+        PQ.vlož(d+w, v)
+
+  rekonstruuj cestu z prev[]</code></pre>{% endraw %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BFS -->
+    <div class="accordion-item bg-white shadow-sm border-light-subtle">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white shadow-sm text-dark" type="button"
+                data-bs-toggle="collapse" data-bs-target="#bfs">
+                <i class="bi bi-arrow-left-right me-2 text-primary"></i>
+                BFS — Prohledávání do šířky
+            </button>
+        </h2>
+        <div id="bfs" class="accordion-collapse collapse" data-bs-parent="#algoAccordion">
+            <div class="accordion-body">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <h5>Princip</h5>
+                        <p>
+                            BFS (Breadth-First Search) systematicky prochází graf <strong>po vrstvách</strong> —
+                            nejprve navštíví všechny sousedy aktuálního uzlu, pak sousedy sousedů atd.
+                            Používá <strong>frontu</strong> (FIFO).
+                        </p>
+
+                        <h5>Postup krok za krokem</h5>
+                        <ol>
+                            <li><strong>Vlož</strong> počáteční uzel do fronty a označ jako navštívený</li>
+                            <li><strong>Opakuj</strong> dokud fronta není prázdná:
+                                <ul>
+                                    <li>Vyjmi uzel <em>u</em> z fronty</li>
+                                    <li>Pro každého souseda <em>v</em>:
+                                        <ul>
+                                            <li>Pokud <em>v</em> nebyl navštíven → označ a <span
+                                                    class="badge bg-success">přidej</span> do fronty</li>
+                                            <li>Jinak → <span class="badge bg-danger">přeskoč</span></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ol>
+
+                        <h5>Časová složitost</h5>
+                        <p><code>O(V + E)</code></p>
+
+                        <h5>Použití</h5>
+                        <p>Nejkratší cesta v neohodnoceném grafu, testování souvislosti, hledání komponent.</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card bg-white shadow-sm border-light-subtle">
+                            <div class="card-header border-light-subtle"><strong>Pseudokód</strong></div>
+                            <div class="card-body">
+                                {% raw %}
+                                <pre class="text-dark mb-0"><code>BFS(G, start):
+  fronta = [start]
+  navštíveno = {start}
+
+  dokud fronta není prázdná:
+    u = fronta.vyber()
+    pro (u, v) ∈ hrany(u):
+      pokud v ∉ navštíveno:
+        navštíveno += {v}
+        fronta.přidej(v)</code></pre>{% endraw %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DFS -->
+    <div class="accordion-item bg-white shadow-sm border-light-subtle">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white shadow-sm text-dark" type="button"
+                data-bs-toggle="collapse" data-bs-target="#dfs">
+                <i class="bi bi-arrow-down me-2 text-primary"></i>
+                DFS — Prohledávání do hloubky
+            </button>
+        </h2>
+        <div id="dfs" class="accordion-collapse collapse" data-bs-parent="#algoAccordion">
+            <div class="accordion-body">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <h5>Princip</h5>
+                        <p>
+                            DFS (Depth-First Search) prochází graf <strong>do hloubky</strong> — jde co nejdále
+                            jedním směrem, pak se vrací (backtracking). Používá <strong>zásobník</strong> (LIFO)
+                            nebo rekurzi.
+                        </p>
+
+                        <h5>Postup krok za krokem</h5>
+                        <ol>
+                            <li><strong>Vlož</strong> počáteční uzel na zásobník</li>
+                            <li><strong>Opakuj</strong> dokud zásobník není prázdný:
+                                <ul>
+                                    <li>Vyjmi uzel <em>u</em> ze zásobníku</li>
+                                    <li>Pokud <em>u</em> nebyl navštíven:
+                                        <ul>
+                                            <li>Označ jako navštívený</li>
+                                            <li>Pro každého souseda <em>v</em>: pokud nebyl navštíven → <span
+                                                    class="badge bg-success">vlož</span> na zásobník</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ol>
+
+                        <h5>Časová složitost</h5>
+                        <p><code>O(V + E)</code></p>
+
+                        <h5>Použití</h5>
+                        <p>Detekce cyklů, topologické třídění, hledání artikulací a mostů, řešení bludišť.</p>
+
+                        <h5>Rozdíl oproti BFS</h5>
+                        <p>
+                            BFS prochází po vrstvách (fronta), DFS jde co nejhlouběji (zásobník).
+                            BFS najde nejkratší cestu v neohodnoceném grafu, DFS ne.
+                        </p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card bg-white shadow-sm border-light-subtle">
+                            <div class="card-header border-light-subtle"><strong>Pseudokód</strong></div>
+                            <div class="card-body">
+                                {% raw %}
+                                <pre class="text-dark mb-0"><code>DFS(G, start):
+  zásobník = [start]
+  navštíveno = {}
+
+  dokud zásobník není prázdný:
+    u = zásobník.vyber()
+    pokud u ∉ navštíveno:
+      navštíveno += {u}
+      pro (u, v) ∈ hrany(u):
+        pokud v ∉ navštíveno:
+          zásobník.vlož(v)</code></pre>{% endraw %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Legenda barev -->
+<div class="card bg-white shadow-sm border-light-subtle mt-4 mb-4">
+    <div class="card-header border-light-subtle">
+        <h5 class="mb-0"><i class="bi bi-palette me-2"></i>Legenda barev ve vizualizaci</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="d-flex align-items-center">
+                    <span class="d-inline-block rounded-circle me-2"
+                        style="width: 20px; height: 20px; background: #6366f1;"></span>
+                    <span>Výchozí hrana (neprozkoumaná)</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex align-items-center">
+                    <span class="d-inline-block rounded-circle me-2"
+                        style="width: 20px; height: 20px; background: #f59e0b;"></span>
+                    <span>Aktuálně procházená hrana</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex align-items-center">
+                    <span class="d-inline-block rounded-circle me-2"
+                        style="width: 20px; height: 20px; background: #10b981;"></span>
+                    <span>Přijatá / vybraná hrana</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex align-items-center">
+                    <span class="d-inline-block rounded-circle me-2"
+                        style="width: 20px; height: 20px; background: #ef4444;"></span>
+                    <span>Zamítnutá hrana</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

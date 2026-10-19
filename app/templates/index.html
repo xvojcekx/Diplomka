@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Domů{% endblock %}
+
+{% block content %}
+<!-- Hero section -->
+<div class="hero-section text-center py-5 mb-4">
+    <div class="hero-icon mb-3">
+        <i class="bi bi-diagram-3-fill"></i>
+    </div>
+    <h1 class="display-5 fw-bold mb-3">
+        Generátor grafových zadání
+    </h1>
+    <p class="lead text-muted mb-4 mx-auto" style="max-width: 600px;">
+        Vytvářejte, analyzujte a exportujte grafová zadání pro předmět
+        <strong>Teorie Grafů</strong> na Mendelově univerzitě v Brně.
+    </p>
+    <a href="/generate" class="btn btn-primary btn-lg px-4 py-2 me-2">
+        <i class="bi bi-plus-circle me-2"></i>Generovat nový graf
+    </a>
+    {% if total_graphs > 0 %}
+    <a href="/export" class="btn btn-outline-secondary btn-lg px-4 py-2">
+        <i class="bi bi-collection me-2"></i>Zobrazit zadání ({{ total_graphs }})
+    </a>
+    {% endif %}
+</div>
+
+{% if error %}
+<div class="alert alert-danger d-flex align-items-center" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    {{ error }}
+</div>
+{% endif %}
+
+<!-- Features -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="feature-card card h-100">
+            <div class="card-body text-center p-4">
+                <div class="feature-icon mb-3">
+                    <i class="bi bi-gear-wide-connected"></i>
+                </div>
+                <h5 class="card-title">Konfigurovatelné</h5>
+                <p class="card-text text-muted small">
+                    Uzly, hrany, orientace, váhy, souvislost, acykličnost, bipartitnost
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="feature-card card h-100">
+            <div class="card-body text-center p-4">
+                <div class="feature-icon mb-3">
+                    <i class="bi bi-calculator"></i>
+                </div>
+                <h5 class="card-title">Algoritmy</h5>
+                <p class="card-text text-muted small">
+                    Dijkstra, MST (Kruskal), topologické třídění, bipartitnost
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="feature-card card h-100">
+            <div class="card-body text-center p-4">
+                <div class="feature-icon mb-3">
+                    <i class="bi bi-eye"></i>
+                </div>
+                <h5 class="card-title">Vizualizace</h5>
+                <p class="card-text text-muted small">
+                    Statické PNG obrázky + interaktivní drag & zoom grafy
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="feature-card card h-100">
+            <div class="card-body text-center p-4">
+                <div class="feature-icon mb-3">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>
+                </div>
+                <h5 class="card-title">Export pro UIS</h5>
+                <p class="card-text text-muted small">
+                    Export zadání do formátu .TG, CSV a JSON pro testovací prostředí UIS MENDELU
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats -->
+{% if total_graphs > 0 %}
+<div class="card bg-white shadow-sm border-light-subtle">
+    <div class="card-body text-center py-3">
+        <span class="text-muted">Uloženo grafů v databázi:</span>
+        <span class="badge bg-primary fs-6 ms-2">{{ total_graphs }}</span>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Generovat graf{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-plus-circle-fill text-primary fs-3 me-3"></i>
+    <div>
+        <h1 class="h3 mb-0">Generovat grafová zadání</h1>
+        <p class="text-muted mb-0 small">Nakonfigurujte parametry a vygenerujte sadu grafů</p>
+    </div>
+</div>
+
+{% if errors %}
+<div class="alert alert-danger">
+    <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-1"></i>Chyby při generování</h6>
+    <ul class="mb-0">
+        {% for err in errors %}
+        <li>{{ err }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form method="POST" action="/generate" id="generateForm">
+    <div class="row g-4">
+        <!-- Levý sloupec — Parametry grafu -->
+        <div class="col-lg-7">
+            <div class="card bg-white shadow-sm border-light-subtle">
+                <div class="card-header border-light-subtle">
+                    <h5 class="mb-0"><i class="bi bi-sliders me-2"></i>Parametry grafu</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Počet sad -->
+                    <div class="mb-4">
+                        <label for="batch_size" class="form-label fw-medium">
+                            Počet sad (grafů k vygenerování)
+                        </label>
+                        <input type="number" class="form-control" id="batch_size"
+                               name="batch_size" min="1" max="50" value="1">
+                        <div class="form-text">Kolik různých grafů se vygeneruje najednou (1–50)</div>
+                    </div>
+
+                    <!-- Režim zadávání -->
+                    <div class="mb-4 bg-light rounded p-3 d-flex align-items-center justify-content-between border">
+                        <div>
+                            <span class="fw-medium text-dark"><i class="bi bi-funnel me-1"></i>Režim generování parametrů</span>
+                            <div class="form-text mt-0">Chcete náhodné počty nebo zadat přesná čísla?</div>
+                        </div>
+                        <div class="form-check form-switch fs-5 mb-0" title="Přepnout na přesný manuální mód">
+                            <input class="form-check-input" type="checkbox" role="switch" id="modeSwitch">
+                            <label class="form-check-label fs-6 text-muted ms-1 mt-1" for="modeSwitch">Přesný počet</label>
+                        </div>
+                    </div>
+
+                    <!-- Uzly -->
+                    <div class="row mb-4">
+                        <div class="col-6 min-input-col">
+                            <label for="node_min" class="form-label fw-medium min-label">Uzly — minimum</label>
+                            <input type="number" class="form-control" id="node_min"
+                                   name="node_min" min="3" max="500" value="5">
+                        </div>
+                        <div class="col-6 max-input-col">
+                            <label for="node_max" class="form-label fw-medium">Uzly — maximum</label>
+                            <input type="number" class="form-control" id="node_max"
+                                   name="node_max" min="3" max="500" value="10">
+                        </div>
+                    </div>
+
+                    <!-- Hrany -->
+                    <div class="row mb-4">
+                        <div class="col-6 min-input-col">
+                            <label for="edge_min" class="form-label fw-medium min-label">Hrany — minimum</label>
+                            <input type="number" class="form-control" id="edge_min"
+                                   name="edge_min" min="2" max="10000" value="6">
+                        </div>
+                        <div class="col-6 max-input-col">
+                            <label for="edge_max" class="form-label fw-medium">Hrany — maximum</label>
+                            <input type="number" class="form-control" id="edge_max"
+                                   name="edge_max" min="2" max="10000" value="15">
+                        </div>
+                    </div>
+
+                    <!-- Seed -->
+                    <div class="mb-3">
+                        <label for="seed" class="form-label fw-medium">
+                            Seed <span class="text-muted">(volitelné)</span>
+                        </label>
+                        <input type="text" class="form-control" id="seed"
+                               name="seed" placeholder="Pro reprodukovatelnost">
+                        <div class="form-text">Stejný seed = stejné grafy</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pravý sloupec — Vlastnosti + Algoritmy -->
+        <div class="col-lg-5">
+            <!-- Vlastnosti grafu -->
+            <div class="card bg-white shadow-sm border-light-subtle mb-4">
+                <div class="card-header border-light-subtle">
+                    <h5 class="mb-0"><i class="bi bi-toggles me-2"></i>Vlastnosti grafu</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="directed" name="directed">
+                        <label class="form-check-label" for="directed">
+                            <i class="bi bi-arrow-right me-1"></i>Orientovaný
+                        </label>
+                    </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="weighted" name="weighted" checked onchange="document.getElementById('weightOptions').style.display = this.checked ? 'flex' : 'none'">
+                        <label class="form-check-label" for="weighted">
+                            <i class="bi bi-123 me-1"></i>Ohodnocený
+                        </label>
+                    </div>
+                    <!-- Váhy min max -->
+                    <div class="row g-2 mb-3 ms-4" id="weightOptions" style="display: flex;">
+                        <div class="col-6">
+                            <label class="form-label small text-muted mb-1">Min. váha</label>
+                            <input type="number" class="form-control form-control-sm" name="weight_min" value="1" min="-100" max="100">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted mb-1">Max. váha</label>
+                            <input type="number" class="form-control form-control-sm" name="weight_max" value="10" min="-100" max="100">
+                        </div>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="connected" name="connected" checked>
+                        <label class="form-check-label" for="connected">
+                            <i class="bi bi-link-45deg me-1"></i>Souvislý
+                        </label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="acyclic" name="acyclic">
+                        <label class="form-check-label" for="acyclic">
+                            <i class="bi bi-tree me-1"></i>Acyklický (DAG / strom)
+                        </label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="bipartite" name="bipartite">
+                        <label class="form-check-label" for="bipartite">
+                            <i class="bi bi-distribute-vertical me-1"></i>Bipartitní
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Algoritmy k výpočtu -->
+            <div class="card bg-white shadow-sm border-light-subtle">
+                <div class="card-header border-light-subtle">
+                    <h5 class="mb-0"><i class="bi bi-cpu me-2"></i>Algoritmy k výpočtu</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="algo_shortest_path"
+                               name="algo_shortest_path" checked>
+                        <label class="form-check-label" for="algo_shortest_path">
+                            Nejkratší cesta (Dijkstra)
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="algo_mst"
+                               name="algo_mst" checked>
+                        <label class="form-check-label" for="algo_mst">
+                            Minimální kostra (MST — Kruskal)
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="algo_topological"
+                               name="algo_topological">
+                        <label class="form-check-label" for="algo_topological">
+                            Topologické třídění
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="algo_bipartite"
+                               name="algo_bipartite">
+                        <label class="form-check-label" for="algo_bipartite">
+                            Ověření bipartitnosti
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="text-center mt-4 mb-5">
+        <button type="submit" class="btn btn-primary btn-lg px-5 py-2" id="submitBtn">
+            <i class="bi bi-play-fill me-2"></i>Generovat
+        </button>
+    </div>
+</form>
+
+<!-- Import existujícího .tg grafu -->
+<div class="card bg-white shadow-sm border-light-subtle mb-4">
+    <div class="card-header border-light-subtle d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-file-earmark-arrow-up me-2"></i>Importovat existující .tg zadání</h5>
+        <span class="badge bg-light text-secondary border">Obousměrná analýza</span>
+    </div>
+    <div class="card-body">
+        <p class="text-muted small mb-3">
+            Máte již hotové zadání grafu ve formátu <code>.tg</code> z UIS MENDELU? Vložte jej níže a aplikace pro něj automaticky vygeneruje vizualizaci, spočítá vlastnosti a umožní krokovat algoritmy.
+        </p>
+        <form method="POST" action="/import-tg">
+            <div class="mb-3">
+                <textarea class="form-control font-monospace small" name="tg_content" rows="6"
+                          placeholder="u A;&#10;u B;&#10;u C;&#10;h A > B 2 :h1;&#10;h B > C 4 :h2;"></textarea>
+            </div>
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="importDirected" name="directed">
+                    <label class="form-check-label" for="importDirected">Chápat hrany jako orientované</label>
+                </div>
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="bi bi-box-arrow-in-down me-1"></i>Načíst a analyzovat .tg graf
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modeSwitch = document.getElementById('modeSwitch');
+    const minCols = document.querySelectorAll('.min-input-col');
+    const maxCols = document.querySelectorAll('.max-input-col');
+    const minLabels = document.querySelectorAll('.min-label');
+    const form = document.querySelector('form');
+    
+    function updateUI() {
+        if (modeSwitch.checked) {
+            maxCols.forEach(el => el.style.display = 'none');
+            minCols.forEach(el => {
+                el.classList.remove('col-6');
+                el.classList.add('col-12');
+            });
+            minLabels[0].innerHTML = "Uzly — přesný počet";
+            minLabels[1].innerHTML = "Hrany — přesný počet";
+        } else {
+            maxCols.forEach(el => el.style.display = 'block');
+            minCols.forEach(el => {
+                el.classList.remove('col-12');
+                el.classList.add('col-6');
+            });
+            minLabels[0].innerHTML = "Uzly — minimum";
+            minLabels[1].innerHTML = "Hrany — minimum";
+        }
+    }
+    
+    modeSwitch.addEventListener('change', updateUI);
+    
+    form.addEventListener('submit', function() {
+        if (modeSwitch.checked) {
+            document.getElementById('node_max').value = document.getElementById('node_min').value;
+            document.getElementById('edge_max').value = document.getElementById('edge_min').value;
+        }
+    });
+
+    // Initial state setup if browser remembers switch state
+    updateUI();
+});
+</script>
+{% endblock %}
+
+{% endblock %}

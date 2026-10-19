@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Export zadání{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-download text-primary fs-3 me-3"></i>
+        <div>
+            <h1 class="h3 mb-0">Export zadání</h1>
+            <p class="text-muted mb-0 small">Přehled vygenerovaných grafů a export pro UIS MENDELU</p>
+        </div>
+    </div>
+    <a href="/generate" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>Generovat nový
+    </a>
+</div>
+
+{% if graphs | length == 0 %}
+<div class="card bg-white shadow-sm border-light-subtle">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+        <h5 class="mt-3 text-muted">Zatím žádná zadání</h5>
+        <p class="text-muted">Začněte generováním nového grafu.</p>
+        <a href="/generate" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Generovat
+        </a>
+    </div>
+</div>
+{% else %}
+
+<!-- Export tlačítka a filtrování -->
+<div class="card bg-white shadow-sm border-light-subtle mb-4">
+    <div class="card-body">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-4">
+                <h5 class="mb-1">
+                    <i class="bi bi-collection me-2"></i>
+                    Celkem grafů: <span class="badge bg-primary fs-6">{{ graphs | length }}</span>
+                </h5>
+                <p class="text-muted small mb-0">Hromadný export nebo správa všech zadání</p>
+            </div>
+            <div class="col-lg-3">
+                <select class="form-select form-select-sm" id="filterType">
+                    <option value="all">Filtr: Všechny grafy</option>
+                    <option value="directed">Pouze orientované</option>
+                    <option value="undirected">Pouze neorientované</option>
+                    <option value="weighted">Pouze ohodnocené</option>
+                    <option value="connected">Pouze souvislé</option>
+                </select>
+            </div>
+            <div class="col-lg-5 text-lg-end">
+                <form method="POST" action="/export/download" class="d-inline me-2">
+                    <select class="form-select form-select-sm w-auto d-inline-block me-1" name="format">
+                        <option value="csv">CSV (Výsledky pro UIS)</option>
+                        <option value="tg">.TG (ZIP archiv zadání)</option>
+                        <option value="json">JSON (Kompletní data)</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-download me-1"></i>Stáhnout vše
+                    </button>
+                </form>
+                <form method="POST" action="/api/graphs/delete-all" class="d-inline"
+                      onsubmit="return confirm('Opravdu chcete smazat všechna vygenerovaná zadání?');">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-trash3 me-1"></i>Smazat vše
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seznam grafů -->
+<div class="row g-3" id="graphsGrid">
+    {% for id, data in graphs.items() %}
+    <div class="col-md-6 col-xl-4 graph-item"
+         data-directed="{{ 'true' if data.config.directed else 'false' }}"
+         data-weighted="{{ 'true' if data.config.weighted else 'false' }}"
+         data-connected="{{ 'true' if data.properties.is_connected else 'false' }}">
+        <div class="card bg-white shadow-sm border-light-subtle h-100 graph-card">
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                    <h6 class="card-title mb-0 font-monospace small text-primary fw-bold">
+                        {{ id[:8] }}…
+                    </h6>
+                    <form method="POST" action="/api/graph/{{ id }}/delete" onsubmit="return confirm('Opravdu chcete tento graf smazat?');" class="m-0 p-0">
+                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Smazat graf">
+                            <i class="bi bi-trash"></i> Smazat
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Náhled grafu -->
+                <div class="text-center mb-3">
+                    <img src="{{ data.png_path }}" alt="Náhled grafu" class="img-fluid rounded border" style="max-height: 180px; width: 100%; object-fit: cover; background: #fafafa;">
+                </div>
+
+                <!-- Mini stats a čas -->
+                <div class="d-flex flex-wrap gap-2 text-muted small mb-2 align-items-center">
+                    <span><i class="bi bi-circle me-1"></i>{{ data.properties.node_count }} uzlů</span>
+                    <span><i class="bi bi-dash-lg me-1"></i>{{ data.properties.edge_count }} hran</span>
+                    <span class="font-monospace ms-auto" style="font-size: 0.75rem;">seed: {{ data.seed if data.seed is not none else 'import' }}</span>
+                </div>
+                
+                {% if data.get('created_at') %}
+                <div class="text-muted small mb-3">
+                    <i class="bi bi-clock me-1"></i>{{ data.get('created_at') }}
+                </div>
+                {% endif %}
+
+                <!-- Vlastnosti jako souvislý text -->
+                <div class="mb-3 small text-dark p-2 rounded" style="background-color: #f8f9fa; border: 1px solid #dee2e6;">
+                    <span class="text-muted fw-bold me-1">Vlastnosti:</span>
+                    {{ 'orientovaný' if data.config.directed else 'neorientovaný' }},
+                    {{ 'ohodnocený' if data.config.weighted else 'neohodnocený' }}
+                    {%- if data.properties.is_connected %}, souvislý{% endif -%}
+                    {%- if data.config.acyclic %}, acyklický{% endif -%}
+                    {%- if data.config.bipartite %}, bipartitní{% endif %}
+                </div>
+
+                <!-- Algoritmy -->
+                {% if data.algorithms %}
+                <div class="mb-3 small">
+                    <span class="text-muted fw-bold me-1">Algoritmy:</span>
+                    {% for algo_name in data.algorithms.keys() %}
+                    <span class="badge bg-light text-dark border border-secondary-subtle px-2 py-1">{{ algo_name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="mt-auto d-flex gap-2">
+                    <a href="/result/{{ id }}" class="btn btn-outline-primary btn-sm flex-grow-1">
+                        <i class="bi bi-eye me-1"></i>Zobrazit detail
+                    </a>
+                    <a href="/api/graph/{{ id }}/tg?download=true" class="btn btn-outline-success btn-sm" title="Stáhnout .tg zadání">
+                        <i class="bi bi-file-earmark-code me-1"></i>.tg
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const filterSelect = document.getElementById("filterType");
+    const items = document.querySelectorAll(".graph-item");
+    if (filterSelect) {
+        filterSelect.addEventListener("change", function() {
+            const val = filterSelect.value;
+            items.forEach(item => {
+                let show = true;
+                if (val === "directed") show = item.dataset.directed === "true";
+                else if (val === "undirected") show = item.dataset.directed === "false";
+                else if (val === "weighted") show = item.dataset.weighted === "true";
+                else if (val === "connected") show = item.dataset.connected === "true";
+                item.style.display = show ? "" : "none";
+            });
+        });
+    }
+});
+</script>
+{% endif %}
+{% endblock %}
+

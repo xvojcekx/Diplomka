@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Vizualizace — {{ graph.graph_id[:8] }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-play-circle-fill text-primary fs-3 me-3"></i>
+        <div>
+            <h1 class="h3 mb-0">Vizualizace průchodu algoritmem</h1>
+            <p class="text-muted mb-0 small font-monospace">Graf: {{ graph.graph_id[:8] }}…</p>
+        </div>
+    </div>
+    <div>
+        <a href="/result/{{ graph.graph_id }}" class="btn btn-outline-primary btn-sm me-2">
+            <i class="bi bi-arrow-left me-1"></i>Zpět na výsledky
+        </a>
+        <a href="/docs-algorithms" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-book me-1"></i>Dokumentace
+        </a>
+    </div>
+</div>
+
+<!-- Výběr algoritmu -->
+<div class="card bg-white shadow-sm border-light-subtle mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-3">
+                <label for="algoSelect" class="form-label fw-medium mb-0 small">
+                    <i class="bi bi-cpu me-1"></i>Zvolte algoritmus
+                </label>
+                <select class="form-select mt-1" id="algoSelect">
+                    {% for algo in available_algos %}
+                    <option value="{{ algo.id }}">{{ algo.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3" id="sourceNodeContainer">
+                <label for="sourceNodeSelect" class="form-label fw-medium mb-0 small">
+                    <i class="bi bi-geo-alt me-1"></i>Výchozí uzel
+                </label>
+                <select class="form-select mt-1" id="sourceNodeSelect">
+                    {% for n in nodes %}
+                    <option value="{{ n }}">u{{ n }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3" id="targetNodeContainer">
+                <label for="targetNodeSelect" class="form-label fw-medium mb-0 small">
+                    <i class="bi bi-flag me-1"></i>Cílový uzel
+                </label>
+                <select class="form-select mt-1" id="targetNodeSelect">
+                    {% for n in nodes %}
+                    <option value="{{ n }}" {% if loop.last %}selected{% endif %}>u{{ n }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 text-md-end mt-4 mt-md-4">
+                <button class="btn btn-primary w-100" id="loadAlgoBtn">
+                    <i class="bi bi-lightning me-1"></i>Načíst simulaci
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vizualizace -->
+<div class="row g-4">
+    <!-- SVG Canvas -->
+    <div class="col-lg-8">
+        <div class="card bg-white shadow-sm border-light-subtle">
+            <div class="card-header border-light-subtle d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" id="algoTitle">
+                    <i class="bi bi-diagram-3 me-2"></i>Vyberte algoritmus
+                </h5>
+                <div id="stepCounter" class="badge bg-secondary">
+                    Krok 0 / 0
+                </div>
+            </div>
+            <div class="card-body p-0" style="position: relative;">
+                <div id="graphContainer" style="width: 100%; height: 550px; background: #11111b; border-radius: 0 0 0.5rem 0.5rem;">
+                    <svg id="graphSvg" width="100%" height="100%"></svg>
+                </div>
+
+                <!-- Loading overlay -->
+                <div id="loadingOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+                     style="background: rgba(17,17,27,0.8); display: none !important; border-radius: 0 0 0.5rem 0.5rem;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="text-muted mt-2 small">Načítám kroky...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ovládací panel -->
+            <div class="card-footer border-light-subtle">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="btn-group" id="controlButtons">
+                        <button class="btn btn-outline-secondary btn-sm" id="btnReset" title="Reset" disabled>
+                            <i class="bi bi-skip-start-fill"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="btnPrev" title="Předchozí" disabled>
+                            <i class="bi bi-skip-backward-fill"></i>
+                        </button>
+                        <button class="btn btn-primary btn-sm px-3" id="btnPlay" title="Play/Pause" disabled>
+                            <i class="bi bi-play-fill" id="playIcon"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="btnNext" title="Další" disabled>
+                            <i class="bi bi-skip-forward-fill"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="btnEnd" title="Konec" disabled>
+                            <i class="bi bi-skip-end-fill"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-speedometer2 text-muted"></i>
+                        <input type="range" class="form-range" id="speedSlider"
+                               min="200" max="3000" value="1000" step="100" style="width: 120px;">
+                        <span class="text-muted small" id="speedLabel">1.0s</span>
+                    </div>
+                </div>
+
+                <!-- Progress bar -->
+                <div class="progress mt-2" style="height: 4px;">
+                    <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info panel -->
+    <div class="col-lg-4">
+        <!-- Aktuální krok -->
+        <div class="card bg-white shadow-sm border-light-subtle mb-4">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-chat-text me-2"></i>Aktuální krok</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-0" id="stepDescription">
+                    <span class="text-muted">Vyberte algoritmus a klikněte "Načíst".</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Legenda -->
+        <div class="card bg-white shadow-sm border-light-subtle mb-4">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-palette me-2"></i>Legenda</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="d-inline-block rounded me-2" style="width: 30px; height: 4px; background: #585b70;"></span>
+                    <span class="small">Neprozkoumaná hrana</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <span class="d-inline-block rounded me-2" style="width: 30px; height: 4px; background: #f59e0b;"></span>
+                    <span class="small">Právě zkoumaná</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <span class="d-inline-block rounded me-2" style="width: 30px; height: 4px; background: #10b981;"></span>
+                    <span class="small">Přijatá / vybraná</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="d-inline-block rounded me-2" style="width: 30px; height: 4px; background: #ef4444;"></span>
+                    <span class="small">Zamítnutá</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log kroků -->
+        <div class="card bg-white shadow-sm border-light-subtle">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-list-ol me-2"></i>Log kroků</h6>
+            </div>
+            <div class="card-body p-0">
+                <div id="stepsLog" class="steps-log" style="max-height: 300px; overflow-y: auto;">
+                    <p class="text-muted small p-3 mb-0">Zatím žádné kroky.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Graph ID pro JS -->
+<input type="hidden" id="graphId" value="{{ graph.graph_id }}">
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const algoSelect = document.getElementById('algoSelect');
+        const sourceCont = document.getElementById('sourceNodeContainer');
+        const targetCont = document.getElementById('targetNodeContainer');
+        
+        function updateNodeSelectors() {
+            const alg = algoSelect.value;
+            if (alg === 'dijkstra') {
+                sourceCont.style.display = 'block';
+                targetCont.style.display = 'block';
+            } else if (alg === 'bfs' || alg === 'dfs') {
+                sourceCont.style.display = 'block';
+                targetCont.style.display = 'none';
+            } else {
+                sourceCont.style.display = 'none';
+                targetCont.style.display = 'none';
+            }
+        }
+        
+        if (algoSelect) {
+            algoSelect.addEventListener('change', updateNodeSelectors);
+            updateNodeSelectors();
+        }
+    });
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/graph_visualizer.js"></script>
+{% endblock %}

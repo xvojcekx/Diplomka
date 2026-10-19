@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block title %}Výsledky — {{ graph.graph_id[:8] }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-graph-up text-primary fs-3 me-3"></i>
+        <div>
+            <h1 class="h3 mb-0">Výsledky grafu</h1>
+            <p class="text-muted mb-0 small font-monospace">ID: {{ graph.graph_id }}</p>
+        </div>
+    </div>
+    <div>
+        <a href="/visualize/{{ graph.graph_id }}" class="btn btn-primary btn-sm me-2">
+            <i class="bi bi-play-circle me-1"></i>Vizualizovat průchod
+        </a>
+        <a href="/api/graph/{{ graph.graph_id }}/tg?download=true" class="btn btn-outline-success btn-sm me-2">
+            <i class="bi bi-file-earmark-code me-1"></i>Stáhnout .tg
+        </a>
+        <a href="/generate" class="btn btn-outline-primary btn-sm me-2">
+            <i class="bi bi-plus-circle me-1"></i>Nový graf
+        </a>
+        <a href="/export" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-collection me-1"></i>Všechna zadání
+        </a>
+    </div>
+</div>
+
+<!-- Vizualizace — Tabs -->
+<div class="card bg-white shadow-sm border-light-subtle mb-4">
+    <div class="card-header border-light-subtle">
+        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="interactive-tab" data-bs-toggle="tab"
+                        data-bs-target="#interactive-pane" type="button" role="tab">
+                    <i class="bi bi-hand-index me-1"></i>Interaktivní pohled
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="static-tab" data-bs-toggle="tab"
+                        data-bs-target="#static-pane" type="button" role="tab">
+                    <i class="bi bi-image me-1"></i>Statický pohled
+                </button>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body p-0">
+        <div class="tab-content">
+            <!-- Interaktivní (Pyvis) -->
+            <div class="tab-pane fade show active" id="interactive-pane" role="tabpanel">
+                <iframe src="{{ graph.interactive_path }}" width="100%" height="600"
+                        style="border: none; border-radius: 0 0 0.5rem 0.5rem;"></iframe>
+            </div>
+            <!-- Statický (Editor uspořádání) -->
+            <div class="tab-pane fade" id="static-pane" role="tabpanel" style="position: relative;">
+                <div class="p-3 bg-light border-bottom text-end">
+                    <button class="btn btn-outline-primary btn-sm" id="btnDownloadPng">
+                        <i class="bi bi-download me-1"></i>Uložit pozice a stáhnout jako PNG
+                    </button>
+                </div>
+                <div id="graphContainer" style="width: 100%; height: 600px; background: #ffffff; border-radius: 0 0 0.5rem 0.5rem;">
+                    <svg id="graphSvg" width="100%" height="100%"></svg>
+                </div>
+                <input type="hidden" id="graphId" value="{{ graph.graph_id }}">
+                <input type="hidden" id="isStaticEditor" value="true">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Podpůrné statistiky -->
+<div class="mb-5">
+    <h4 class="mb-3 text-muted"><i class="bi bi-tools me-2"></i>Podpůrné statistiky (grafové invarianty)</h4>
+    <div class="card bg-white shadow-sm border-light-subtle">
+        <div class="card-body bg-light">
+            <div class="d-flex align-items-center mb-2">
+                <span class="text-secondary fw-bold me-2" style="white-space: nowrap;">Stupňová sekvence:</span>
+                <span class="font-monospace small text-dark p-2 bg-white border rounded text-break" style="max-height: 100px; overflow-y: auto; display: inline-block; width: 100%;">
+                    {{ graph.properties.degree_sequence }}
+                </span>
+            </div>
+            <p class="small text-muted mb-0 mt-3 border-top pt-2">
+                <strong>Proč je tato metrika důležitá?</strong> Stupňová sekvence (seřazený seznam počtu sousedů pro všechny uzly grafu) slouží k ověření platných grafových invariantů. Pomocí deterministických algoritmů (zejm. Havel-Hakimi) lze ověřit realizovatelnost grafu a předejít neplatným kombinacím parametrů.
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Vlastnosti grafu -->
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Vlastnosti grafu</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted">Počet uzlů</td>
+                            <td class="fw-medium">{{ graph.properties.node_count }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Počet hran</td>
+                            <td class="fw-medium">{{ graph.properties.edge_count }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Orientovaný</td>
+                            <td>
+                                {% if graph.properties.is_directed %}
+                                <span class="badge bg-success">Ano</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Ne</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Ohodnocený</td>
+                            <td>
+                                {% if graph.properties.is_weighted %}
+                                <span class="badge bg-success">Ano</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Ne</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Souvislý</td>
+                            <td>
+                                {% if graph.properties.is_connected %}
+                                <span class="badge bg-success">Ano</span>
+                                {% else %}
+                                <span class="badge bg-danger">Ne</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Hustota sítě</td>
+                            <td class="fw-medium">{{ graph.properties.density }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Průměr</td>
+                            <td class="fw-medium">{{ graph.properties.diameter }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Seed</td>
+                            <td class="fw-medium font-monospace">{{ graph.seed if graph.seed is not none else '— (importováno)' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Konfigurace -->
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Konfigurace</h5>
+            </div>
+            <div class="card-body">
+                <table class="table  table-sm mb-0">
+                    <tbody>
+                        {% for key, value in graph.config.items() %}
+                        <tr>
+                            <td class="text-muted">{{ key }}</td>
+                            <td class="fw-medium">
+                                {% if value is sameas true %}
+                                <span class="badge bg-success">Ano</span>
+                                {% elif value is sameas false %}
+                                <span class="badge bg-secondary">Ne</span>
+                                {% elif value is none %}
+                                <span class="text-muted">—</span>
+                                {% else %}
+                                {{ value }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiky -->
+<h3 class="mt-5 mb-3"><i class="bi bi-bar-chart-steps me-2"></i>Statistiky grafu</h3>
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Uzly (Stupně)</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Nejvíce sousedů:</strong> <span class="badge bg-primary fs-6">{{ graph.properties.max_degree_val }}</span></p>
+                <div class="text-muted small mb-3">Uzly: <span class="font-monospace text-dark">{{ graph.properties.max_degree_nodes | join(', ') }}</span></div>
+                
+                <p class="mb-2"><strong>Nejméně sousedů:</strong> <span class="badge bg-secondary fs-6">{{ graph.properties.min_degree_val }}</span></p>
+                <div class="text-muted small">Uzly: <span class="font-monospace text-dark">{{ graph.properties.min_degree_nodes | join(', ') }}</span></div>
+            </div>
+        </div>
+    </div>
+    {% if graph.properties.is_weighted %}
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-rulers me-2"></i>Hrany (Váhy)</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Maximální váha:</strong> <span class="badge bg-success fs-6">{{ graph.properties.max_weight_val }}</span></p>
+                <div class="text-muted small mb-3">Na hranách: <span class="font-monospace text-dark">{{ graph.properties.max_weight_edges | join(', ') }}</span></div>
+                
+                <p class="mb-2"><strong>Minimální váha:</strong> <span class="badge bg-secondary fs-6">{{ graph.properties.min_weight_val }}</span></p>
+                <div class="text-muted small">Na hranách: <span class="font-monospace text-dark">{{ graph.properties.min_weight_edges | join(', ') }}</span></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Algoritmy -->
+{% if graph.algorithms %}
+<h3 class="mt-5 mb-3"><i class="bi bi-cpu me-2"></i>Výsledky algoritmů</h3>
+
+<div class="row g-4">
+    {% if graph.algorithms.shortest_path is defined %}
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-signpost-split me-2"></i>Nejkratší cesta (Dijkstra)</h6>
+            </div>
+            <div class="card-body">
+                {% if nodes is defined and nodes | length >= 2 %}
+                <div class="row g-2 align-items-end mb-3 pb-3 border-bottom">
+                    <div class="col-4">
+                        <label class="form-label small text-muted mb-1">Z uzlu</label>
+                        <select class="form-select form-select-sm" id="spSource">
+                            {% for n in nodes %}
+                            <option value="{{ n }}" {% if loop.first %}selected{% endif %}>u{{ n }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small text-muted mb-1">Do uzlu</label>
+                        <select class="form-select form-select-sm" id="spTarget">
+                            {% for n in nodes %}
+                            <option value="{{ n }}" {% if loop.last %}selected{% endif %}>u{{ n }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <button type="button" class="btn btn-outline-primary btn-sm w-100" id="btnRecalcSp">
+                            <i class="bi bi-calculator me-1"></i>Přepočítat
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+                <div id="spResultContainer">
+                    {% set sp = graph.algorithms.shortest_path %}
+                    {% if sp.error %}
+                    <div class="alert alert-warning small mb-0">{{ sp.error }}</div>
+                    {% else %}
+                    <p><strong>Cesta:</strong>
+                        <span class="font-monospace">{{ sp.path | join(' → ') }}</span>
+                    </p>
+                    <p><strong>Vzdálenost:</strong>
+                        <span class="badge bg-primary fs-6">{{ sp.distance }}</span>
+                    </p>
+                    {% if sp.steps %}
+                    <p class="mb-1"><strong>Kroky:</strong></p>
+                    <ol class="small mb-0">
+                        {% for step in sp.steps %}
+                        <li class="font-monospace">{{ step }}</li>
+                        {% endfor %}
+                    </ol>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if graph.algorithms.mst is defined %}
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-tree me-2"></i>Minimální kostra (MST — Kruskal)</h6>
+            </div>
+            <div class="card-body">
+                {% set mst = graph.algorithms.mst %}
+                {% if mst.error %}
+                <div class="alert alert-warning small mb-0">{{ mst.error }}</div>
+                {% else %}
+                <p><strong>Celková váha:</strong>
+                    <span class="badge bg-success fs-6">{{ mst.total_weight }}</span>
+                </p>
+                <p class="mb-1"><strong>Hrany kostry:</strong></p>
+                <table class="table  table-sm small">
+                    <thead>
+                        <tr><th>Z</th><th>Do</th><th>Váha</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for edge in mst.tree_edges %}
+                        <tr>
+                            <td class="font-monospace">u{{ edge.source }}</td>
+                            <td class="font-monospace">u{{ edge.target }}</td>
+                            <td><span class="badge bg-primary">{{ edge.weight }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if graph.algorithms.topological_sort is defined %}
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-sort-down me-2"></i>Topologické třídění</h6>
+            </div>
+            <div class="card-body">
+                {% set ts = graph.algorithms.topological_sort %}
+                {% if ts.error %}
+                <div class="alert alert-warning small mb-0">{{ ts.error }}</div>
+                {% else %}
+                <p><strong>Platné:</strong>
+                    {% if ts.valid %}
+                    <span class="badge bg-success">Ano</span>
+                    {% else %}
+                    <span class="badge bg-danger">Ne</span>
+                    {% endif %}
+                </p>
+                <p><strong>Pořadí:</strong>
+                    <span class="font-monospace">{{ ts.order | join(' → ') }}</span>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if graph.algorithms.bipartite is defined %}
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-distribute-vertical me-2"></i>Bipartitnost</h6>
+            </div>
+            <div class="card-body">
+                {% set bp = graph.algorithms.bipartite %}
+                {% if bp.error %}
+                <div class="alert alert-warning small mb-0">{{ bp.error }}</div>
+                {% else %}
+                <p><strong>Bipartitní:</strong>
+                    {% if bp.is_bipartite %}
+                    <span class="badge bg-success">Ano</span>
+                    {% else %}
+                    <span class="badge bg-danger">Ne</span>
+                    {% endif %}
+                </p>
+                {% if bp.sets %}
+                <p><strong>Množina A:</strong>
+                    <span class="font-monospace">{{ bp.sets[0] | join(', ') }}</span>
+                </p>
+                <p><strong>Množina B:</strong>
+                    <span class="font-monospace">{{ bp.sets[1] | join(', ') }}</span>
+                </p>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Matice sousednosti -->
+<h3 class="mt-5 mb-3"><i class="bi bi-grid-3x3 me-2"></i>Matice sousednosti</h3>
+<div class="card bg-white shadow-sm border-light-subtle">
+    <div class="card-body overflow-auto">
+        <table class="table  table-sm table-bordered text-center small mb-0">
+            <thead>
+                <tr>
+                    <th class="bg-light border-bottom border-end"></th>
+                    {% for i in range(graph.adjacency_matrix | length) %}
+                    <th class="bg-light border-bottom text-dark font-monospace text-center px-1" style="min-width: 32px">u{{ i }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row_idx in range(graph.adjacency_matrix | length) %}
+                <tr>
+                    <th class="bg-light border-end text-dark font-monospace align-middle">u{{ row_idx }}</th>
+                    {% for val in graph.adjacency_matrix[row_idx] %}
+                    <td class="align-middle {% if val > 0 %}table-primary fw-medium px-1{% else %}text-muted px-1{% endif %}" style="min-width: 32px">
+                        {{ val | int if val == val | int else val }}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Seznam hran -->
+<h3 class="mt-5 mb-3"><i class="bi bi-list-ul me-2"></i>Seznam hran</h3>
+<div class="card bg-white shadow-sm border-light-subtle mb-4">
+    <div class="card-body">
+        <table class="table  table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Z uzlu</th>
+                    <th>Do uzlu</th>
+                    {% if graph.config.weighted %}
+                    <th>Váha</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for edge in graph.edge_list %}
+                <tr>
+                    <td class="text-muted fw-medium border-end bg-light">h{{ loop.index }}</td>
+                    <td class="font-monospace">u{{ edge.source }}</td>
+                    <td class="font-monospace">u{{ edge.target }}</td>
+                    {% if graph.config.weighted %}
+                    <td><span class="badge bg-primary">{{ edge.weight }}</span></td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Definice grafu ve formátu .tg -->
+{% if tg_content is defined %}
+<h3 class="mt-5 mb-3"><i class="bi bi-file-earmark-code me-2"></i>Definice grafu pro UIS (.tg)</h3>
+<div class="card bg-white shadow-sm border-light-subtle mb-4">
+    <div class="card-header border-light-subtle d-flex justify-content-between align-items-center">
+        <span class="small text-muted">Zápis uzlů a hran připravený pro vložení do systému UIS MENDELU</span>
+        <div>
+            <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="btnCopyTg">
+                <i class="bi bi-clipboard me-1"></i>Zkopírovat do schránky
+            </button>
+            <a href="/api/graph/{{ graph.graph_id }}/tg?download=true" class="btn btn-primary btn-sm">
+                <i class="bi bi-download me-1"></i>Stáhnout .tg soubor
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <pre class="m-0 p-3 bg-light font-monospace small" id="tgCodeBlock" style="max-height: 260px; overflow-y: auto;">{{ tg_content }}</pre>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/graph_visualizer.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const btnCopyTg = document.getElementById("btnCopyTg");
+    const tgCodeBlock = document.getElementById("tgCodeBlock");
+    if (btnCopyTg && tgCodeBlock) {
+        btnCopyTg.addEventListener("click", function() {
+            navigator.clipboard.writeText(tgCodeBlock.innerText).then(() => {
+                const orig = btnCopyTg.innerHTML;
+                btnCopyTg.innerHTML = '<i class="bi bi-check2 me-1"></i>Zkopírováno!';
+                setTimeout(() => { btnCopyTg.innerHTML = orig; }, 2000);
+            });
+        });
+    }
+
+    const btnRecalcSp = document.getElementById("btnRecalcSp");
+    const spSource = document.getElementById("spSource");
+    const spTarget = document.getElementById("spTarget");
+    const spResultContainer = document.getElementById("spResultContainer");
+    if (btnRecalcSp && spSource && spTarget && spResultContainer) {
+        btnRecalcSp.addEventListener("click", async function() {
+            const src = spSource.value;
+            const tgt = spTarget.value;
+            btnRecalcSp.disabled = true;
+            try {
+                const res = await fetch(`/api/graph/{{ graph.graph_id }}/shortest_path?source=${src}&target=${tgt}`);
+                const data = await res.json();
+                if (data.error) {
+                    spResultContainer.innerHTML = `<div class="alert alert-warning small mb-0">${data.error}</div>`;
+                } else {
+                    const stepsHtml = (data.steps && data.steps.length)
+                        ? `<p class="mb-1"><strong>Kroky:</strong></p><ol class="small mb-0">${data.steps.map(s => `<li class="font-monospace">${s}</li>`).join('')}</ol>`
+                        : '';
+                    spResultContainer.innerHTML = `
+                        <p><strong>Cesta:</strong> <span class="font-monospace">${data.path.join(' → ')}</span></p>
+                        <p><strong>Vzdálenost:</strong> <span class="badge bg-primary fs-6">${data.distance}</span></p>
+                        ${stepsHtml}
+                    `;
+                }
+            } catch (e) {
+                spResultContainer.innerHTML = `<div class="alert alert-danger small mb-0">Chyba při výpočtu cesty.</div>`;
+            } finally {
+                btnRecalcSp.disabled = false;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+

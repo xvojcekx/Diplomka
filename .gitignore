@@ -1,0 +1,22 @@
+# Ignore environment variables
+.env
+venv/
+__pycache__/
+*.pyc
+
+# Ignore SQLite databases
+app/data/*.db
+app/data/*.db-journal
+app/data/*.db-wal
+app/data/*.db-shm
+
+# Ignore generated images/HTML
+app/static/graphs/*.png
+app/static/graphs/*.html
+
+# Ignore caches, OS files, and local scratch files
+.pytest_cache/
+.DS_Store
+css_changer.py
+test_msg.txt
+
