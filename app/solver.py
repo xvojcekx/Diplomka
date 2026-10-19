@@ -844,77 +844,514 @@ def dfs_steps(G: nx.Graph, source: int) -> dict:
 
 
 # ============================================================================
-# BUDOUCÍ ALGORITMY (připravená struktura)
+# POKROČILÉ ALGORITMY (SEKCE A)
 # ============================================================================
 
-def ford_fulkerson_max_flow(G: nx.DiGraph, source: int, sink: int) -> dict:
+def ford_fulkerson_max_flow(G: nx.Graph, source: int = None, sink: int = None) -> dict:
     """
-    Ford-Fulkerson — maximální tok v síti.
-    TODO: Implementovat v budoucí verzi.
+    Edmonds-Karp / Ford-Fulkerson — maximální tok v síti a minimální řez.
 
     Args:
-        G: Orientovaný graf s kapacitami na hranách
-        source: zdrojový uzel
-        sink: spotřebič
+        G: Graf s kapacitami (weight) na hranách
+        source: zdrojový uzel (výchozí: první uzel)
+        sink: spotřebič / stoka (výchozí: poslední uzel)
 
     Returns:
-        dict: {"max_flow": float, "flow_dict": dict, "min_cut": tuple}
+        dict: {
+            "max_flow": float,
+            "source": int,
+            "sink": int,
+            "flow_edges": list[{"source", "target", "flow", "capacity"}],
+            "min_cut_value": float,
+            "min_cut_sets": (list, list),
+            "min_cut_edges": list[{"source", "target", "capacity"}],
+            "error": str|None
+        }
     """
-    raise NotImplementedError("Ford-Fulkerson bude implementován v budoucí verzi.")
+    try:
+        if G.number_of_nodes() < 2:
+            return {"max_flow": 0, "error": "Graf musí mít alespoň 2 uzly."}
+
+        nodes = sorted(G.nodes())
+        if source is None or source not in nodes:
+            source = nodes[0]
+        if sink is None or sink not in nodes:
+            sink = nodes[-1]
+        if source == sink:
+            return {"max_flow": 0, "error": "Zdroj a spotřebič musí být různé uzly."}
+
+        # Vytvoř pomocný graf s nezápornými kapacitami v atributu 'capacity'
+        H = nx.DiGraph() if G.is_directed() else nx.Graph()
+        H.add_nodes_from(G.nodes())
+        for u, v, d in G.edges(data=True):
+            w = d.get("weight", 1)
+            if w < 0:
+                return {
+                    "max_flow": 0,
+                    "error": "Maximální tok vyžaduje nezáporné kapacity hran."
+                }
+            H.add_edge(int(u), int(v), capacity=float(w))
+
+        flow_val, flow_dict = nx.maximum_flow(H, int(source), int(sink), capacity="capacity")
+        cut_val, (set_s, set_t) = nx.minimum_cut(H, int(source), int(sink), capacity="capacity")
+
+        flow_edges = []
+        for u, v, d in H.edges(data=True):
+            cap = d["capacity"]
+            f_uv = flow_dict.get(u, {}).get(v, 0)
+            if not G.is_directed() and f_uv == 0:
+                f_uv = flow_dict.get(v, {}).get(u, 0)
+            if f_uv > 0 or cap > 0:
+                flow_edges.append({
+                    "source": int(u),
+                    "target": int(v),
+                    "flow": int(f_uv) if float(f_uv).is_integer() else round(float(f_uv), 2),
+                    "capacity": int(cap) if float(cap).is_integer() else round(float(cap), 2),
+                })
+
+        min_cut_edges = []
+        for u in set_s:
+            for v in H.neighbors(u):
+                if v in set_t:
+                    cap = H[u][v]["capacity"]
+                    min_cut_edges.append({
+                        "source": int(u),
+                        "target": int(v),
+                        "capacity": int(cap) if float(cap).is_integer() else round(float(cap), 2),
+                    })
+
+        return {
+            "max_flow": int(flow_val) if float(flow_val).is_integer() else round(float(flow_val), 2),
+            "source": int(source),
+            "sink": int(sink),
+            "flow_edges": flow_edges,
+            "min_cut_value": int(cut_val) if float(cut_val).is_integer() else round(float(cut_val), 2),
+            "min_cut_sets": (sorted([int(x) for x in set_s]), sorted([int(x) for x in set_t])),
+            "min_cut_edges": min_cut_edges,
+            "error": None,
+        }
+    except Exception as e:
+        return {"max_flow": 0, "error": str(e)}
 
 
-def bellman_ford(G: nx.Graph, source: int) -> dict:
+def bellman_ford(G: nx.Graph, source: int = None, target: int = None) -> dict:
     """
-    Bellman-Ford — nejkratší cesty (včetně záporných vah).
-    TODO: Implementovat v budoucí verzi.
+    Bellman-Fordův algoritmus — nejkratší cesty i pro grafy se zápornými vahami hran.
 
     Args:
         G: NetworkX graf (může mít záporné váhy)
-        source: počáteční uzel
+        source: počáteční uzel (výchozí: první uzel)
+        target: volitelný cílový uzel (výchozí: poslední uzel)
 
     Returns:
-        dict: {"distances": dict, "predecessors": dict, "negative_cycle": bool}
+        dict: {
+            "source": int,
+            "target": int,
+            "path": list,
+            "distance": float,
+            "distances": dict,
+            "negative_cycle": bool,
+            "error": str|None
+        }
     """
-    raise NotImplementedError("Bellman-Ford bude implementován v budoucí verzi.")
+    try:
+        if G.number_of_nodes() == 0:
+            return {"negative_cycle": False, "error": "Graf je prázdný."}
+
+        nodes = sorted(G.nodes())
+        if source is None or source not in nodes:
+            source = nodes[0]
+        if target is None or target not in nodes:
+            target = nodes[-1]
+
+        weight = "weight" if nx.is_weighted(G) else None
+
+        if nx.negative_edge_cycle(G, weight=weight or "weight"):
+            return {
+                "source": int(source),
+                "target": int(target),
+                "path": [],
+                "distance": float("-inf"),
+                "distances": {},
+                "negative_cycle": True,
+                "error": "Graf obsahuje záporný cyklus dosažitelný v síti — nejkratší cesta není konečná."
+            }
+
+        preds, dists = nx.bellman_ford_predecessor_and_distance(G, source=source, weight=weight)
+        clean_dists = {
+            f"u{int(k)}": (int(v) if isinstance(v, (int, float)) and float(v).is_integer() else round(float(v), 2))
+            for k, v in sorted(dists.items())
+        }
+
+        if target not in dists:
+            return {
+                "source": int(source),
+                "target": int(target),
+                "path": [],
+                "distance": float("inf"),
+                "distances": clean_dists,
+                "negative_cycle": False,
+                "error": f"Cílový uzel u{target} není z uzlu u{source} dosažitelný."
+            }
+
+        path = nx.bellman_ford_path(G, source=source, target=target, weight=weight)
+        dist = dists[target]
+        return {
+            "source": int(source),
+            "target": int(target),
+            "path": [int(x) for x in path],
+            "distance": int(dist) if float(dist).is_integer() else round(float(dist), 2),
+            "distances": clean_dists,
+            "negative_cycle": False,
+            "error": None,
+        }
+    except nx.NetworkXUnbounded:
+        return {
+            "source": int(source) if source is not None else 0,
+            "target": int(target) if target is not None else 0,
+            "path": [],
+            "distance": float("-inf"),
+            "distances": {},
+            "negative_cycle": True,
+            "error": "Detekován záporný cyklus — nejkratší cesty nejsou omezené."
+        }
+    except Exception as e:
+        return {"negative_cycle": False, "error": str(e)}
+
+
+def bellman_ford_steps(G: nx.Graph, source: int = None, target: int = None) -> dict:
+    """
+    Kroková verze Bellman-Fordova algoritmu pro interaktivní vizualizér.
+    """
+    try:
+        nodes = sorted([int(n) for n in G.nodes()])
+        if not nodes:
+            return {"error": "Graf je prázdný."}
+        if source is None or source not in nodes:
+            source = nodes[0]
+        if target is None or target not in nodes:
+            target = nodes[-1]
+
+        directed = G.is_directed()
+        edges = []
+        for u, v, d in G.edges(data=True):
+            w = d.get("weight", 1)
+            edges.append((int(u), int(v), w))
+            if not directed:
+                edges.append((int(v), int(u), w))
+
+        dist = {n: float("inf") for n in nodes}
+        parent = {n: None for n in nodes}
+        dist[int(source)] = 0
+
+        steps = []
+        step_num = 0
+
+        def current_tree_edges():
+            res = []
+            for n, p in parent.items():
+                if p is not None:
+                    res.append([int(p), int(n)])
+            return res
+
+        steps.append({
+            "step": step_num,
+            "action": "init",
+            "edge": None,
+            "weight": None,
+            "description": f"Inicializace Bellman-Ford: dist[{source}] = 0, ostatní = ∞.",
+            "selected_edges": [],
+            "current_edge": None,
+            "highlight_nodes": [int(source)],
+        })
+        step_num += 1
+
+        n_nodes = len(nodes)
+        for iteration in range(1, n_nodes):
+            updated = False
+            for u, v, w in edges:
+                if dist[u] != float("inf"):
+                    if dist[u] + w < dist[v]:
+                        old = "∞" if dist[v] == float("inf") else dist[v]
+                        dist[v] = dist[u] + w
+                        parent[v] = u
+                        updated = True
+                        steps.append({
+                            "step": step_num,
+                            "action": "accept",
+                            "edge": [u, v],
+                            "weight": w,
+                            "description": f"Iterace {iteration}: Relaxace hrany {u}→{v} (váha {w}). dist[{v}] snížena z {old} na {dist[v]}.",
+                            "selected_edges": current_tree_edges(),
+                            "current_edge": [u, v],
+                            "highlight_nodes": [u, v],
+                        })
+                        step_num += 1
+            if not updated:
+                break
+
+        # Kontrola záporného cyklu
+        for u, v, w in edges:
+            if dist[u] != float("inf") and dist[u] + w < dist[v]:
+                steps.append({
+                    "step": step_num,
+                    "action": "reject",
+                    "edge": [u, v],
+                    "weight": w,
+                    "description": f"Detekován záporný cyklus na hraně {u}→{v}!",
+                    "selected_edges": current_tree_edges(),
+                    "current_edge": [u, v],
+                    "highlight_nodes": [u, v],
+                })
+                return {
+                    "algorithm": "bellman_ford",
+                    "algorithm_name": "Bellman-Fordův algoritmus",
+                    "steps": steps,
+                    "error": None,
+                }
+
+        # Rekonstrukce výsledné cesty do target
+        final_edges = []
+        path_nodes = []
+        if dist[int(target)] != float("inf"):
+            curr = int(target)
+            visited_trace = set()
+            while curr is not None and curr not in visited_trace:
+                visited_trace.add(curr)
+                path_nodes.append(curr)
+                p = parent[curr]
+                if p is not None:
+                    final_edges.append([int(p), int(curr)])
+                curr = p
+            path_nodes.reverse()
+            final_edges.reverse()
+            desc = f"Hotovo! Nejkratší cesta z {source} do {target}: {' → '.join(map(str, path_nodes))} (délka {dist[int(target)]})."
+        else:
+            desc = f"Hotovo! Uzel {target} není z uzlu {source} dosažitelný."
+
+        steps.append({
+            "step": step_num,
+            "action": "done",
+            "edge": None,
+            "weight": None,
+            "description": desc,
+            "selected_edges": final_edges if final_edges else current_tree_edges(),
+            "current_edge": None,
+            "highlight_nodes": path_nodes if path_nodes else [int(source)],
+        })
+
+        return {
+            "algorithm": "bellman_ford",
+            "algorithm_name": "Bellman-Fordův algoritmus",
+            "steps": steps,
+            "result_edges": final_edges,
+            "error": None,
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 def graph_coloring(G: nx.Graph) -> dict:
     """
-    Barvení grafů — chromatické číslo a obarvení.
-    TODO: Implementovat v budoucí verzi.
+    Barvení grafu (Greedy / Welsh-Powell — strategie largest_first).
 
     Args:
         G: NetworkX graf
 
     Returns:
-        dict: {"chromatic_number": int, "coloring": dict}
+        dict: {
+            "chromatic_number": int,
+            "coloring": dict,
+            "color_classes": dict,
+            "error": str|None
+        }
     """
-    raise NotImplementedError("Barvení grafů bude implementováno v budoucí verzi.")
+    try:
+        H = G.to_undirected() if G.is_directed() else G
+        coloring_raw = nx.coloring.greedy_color(H, strategy="largest_first")
+        coloring = {f"u{int(k)}": int(v) + 1 for k, v in sorted(coloring_raw.items())}
+        num_colors = max(coloring.values()) if coloring else 0
+
+        color_classes = {}
+        for node_str, c in coloring.items():
+            color_classes.setdefault(f"Barva {c}", []).append(node_str)
+
+        return {
+            "chromatic_number": num_colors,
+            "coloring": coloring,
+            "color_classes": color_classes,
+            "error": None,
+        }
+    except Exception as e:
+        return {"chromatic_number": 0, "coloring": {}, "color_classes": {}, "error": str(e)}
 
 
 def euler_path(G: nx.Graph) -> dict:
     """
-    Eulerova cesta/okruh.
-    TODO: Implementovat v budoucí verzi.
+    Eulerovský tah a Eulerovská kružnice (sled obsahující každou hranu právě jednou).
 
     Args:
         G: NetworkX graf
 
     Returns:
-        dict: {"has_euler_path": bool, "has_euler_circuit": bool, "path": list}
+        dict: {
+            "has_euler_circuit": bool,
+            "has_euler_path": bool,
+            "circuit": list,
+            "path": list,
+            "error": str|None
+        }
     """
-    raise NotImplementedError("Eulerova cesta bude implementována v budoucí verzi.")
+    try:
+        if G.number_of_edges() == 0:
+            return {
+                "has_euler_circuit": False,
+                "has_euler_path": False,
+                "circuit": [],
+                "path": [],
+                "error": "Graf neobsahuje žádné hrany."
+            }
+
+        has_circuit = nx.is_eulerian(G)
+        has_path = nx.has_eulerian_path(G)
+
+        circuit_edges = []
+        path_edges = []
+
+        if has_circuit:
+            circuit_edges = [f"u{int(u)}→u{int(v)}" for u, v in nx.eulerian_circuit(G)]
+            path_edges = circuit_edges
+        elif has_path:
+            path_edges = [f"u{int(u)}→u{int(v)}" for u, v in nx.eulerian_path(G)]
+
+        return {
+            "has_euler_circuit": bool(has_circuit),
+            "has_euler_path": bool(has_path),
+            "circuit": circuit_edges,
+            "path": path_edges,
+            "error": None,
+        }
+    except Exception as e:
+        return {
+            "has_euler_circuit": False,
+            "has_euler_path": False,
+            "circuit": [],
+            "path": [],
+            "error": str(e),
+        }
 
 
 def hamilton_path(G: nx.Graph) -> dict:
     """
-    Hamiltonova cesta/okruh.
-    TODO: Implementovat v budoucí verzi.
+    Hledání Hamiltonovské cesty a Hamiltonovské kružnice (prochází každý uzel právě jednou).
+    Využívá backtracking s ořezáváním (pro grafy do 18 uzlů exaktně).
 
     Args:
         G: NetworkX graf
 
     Returns:
-        dict: {"has_hamilton_path": bool, "path": list}
+        dict: {
+            "has_hamilton_cycle": bool,
+            "has_hamilton_path": bool,
+            "cycle": list,
+            "path": list,
+            "error": str|None
+        }
     """
-    raise NotImplementedError("Hamiltonova cesta bude implementována v budoucí verzi.")
+    try:
+        nodes = sorted([int(n) for n in G.nodes()])
+        n = len(nodes)
+        if n == 0:
+            return {"has_hamilton_cycle": False, "has_hamilton_path": False, "cycle": [], "path": [], "error": "Prázdný graf."}
+        if n > 20:
+            return {
+                "has_hamilton_cycle": False,
+                "has_hamilton_path": False,
+                "cycle": [],
+                "path": [],
+                "error": "Exaktní test Hamiltonovské kružnice je z důvodu NP-úplnosti omezen na grafy do 20 uzlů."
+            }
+
+        adj = {u: sorted([int(v) for v in G.neighbors(u)]) for u in nodes}
+        found_path = []
+        found_cycle = []
+
+        def backtrack(curr_path, visited):
+            nonlocal found_path, found_cycle
+            if len(curr_path) == n:
+                if not found_path:
+                    found_path = list(curr_path)
+                # Zkontroluj uzavření do kružnice
+                if curr_path[0] in adj[curr_path[-1]]:
+                    found_cycle = list(curr_path) + [curr_path[0]]
+                    return True
+                return False
+
+            last = curr_path[-1]
+            for nxt in adj[last]:
+                if nxt not in visited:
+                    visited.add(nxt)
+                    curr_path.append(nxt)
+                    if backtrack(curr_path, visited):
+                        return True
+                    curr_path.pop()
+                    visited.remove(nxt)
+            return False
+
+        for start_node in nodes:
+            if backtrack([start_node], {start_node}):
+                break
+
+        return {
+            "has_hamilton_cycle": bool(found_cycle),
+            "has_hamilton_path": bool(found_path),
+            "cycle": [f"u{x}" for x in found_cycle],
+            "path": [f"u{x}" for x in found_path],
+            "error": None,
+        }
+    except Exception as e:
+        return {
+            "has_hamilton_cycle": False,
+            "has_hamilton_path": False,
+            "cycle": [],
+            "path": [],
+            "error": str(e),
+        }
+
+
+def components_and_bridges(G: nx.Graph) -> dict:
+    """
+    Analýza souvislosti:
+    - Pro neorientované grafy: souvislé komponenty, artikulace (kritické uzly) a mosty (kritické hrany).
+    - Pro orientované grafy: silně souvislé komponenty (SCC — Tarjanův algoritmus) a slabě souvislé komponenty.
+    """
+    try:
+        if G.is_directed():
+            sccs = [sorted([f"u{int(x)}" for x in comp]) for comp in nx.strongly_connected_components(G)]
+            sccs.sort(key=lambda c: (-len(c), c))
+            wccs = [sorted([f"u{int(x)}" for x in comp]) for comp in nx.weakly_connected_components(G)]
+            return {
+                "is_directed": True,
+                "strongly_connected_count": len(sccs),
+                "strongly_connected_components": sccs,
+                "weakly_connected_count": len(wccs),
+                "articulation_points": [],
+                "bridges": [],
+                "error": None,
+            }
+        else:
+            ccs = [sorted([f"u{int(x)}" for x in comp]) for comp in nx.connected_components(G)]
+            ccs.sort(key=lambda c: (-len(c), c))
+            articulations = sorted([f"u{int(x)}" for x in nx.articulation_points(G)])
+            bridges = [f"u{int(u)}–u{int(v)}" for u, v in sorted(nx.bridges(G))]
+            return {
+                "is_directed": False,
+                "connected_components_count": len(ccs),
+                "connected_components": ccs,
+                "articulation_points": articulations,
+                "bridges": bridges,
+                "error": None,
+            }
+    except Exception as e:
+        return {"error": str(e)}
+

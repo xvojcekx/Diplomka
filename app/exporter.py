@@ -247,6 +247,66 @@ def export_to_csv(graphs: list) -> str:
                     + (f", Množiny: {bp['sets']}" if bp.get("sets") else "")
                 ])
 
+        # Bellman-Ford
+        if "bellman_ford" in algos:
+            bf = algos["bellman_ford"]
+            if bf.get("error") is None and bf.get("path"):
+                writer.writerow([
+                    graph_id,
+                    description,
+                    "bellman_ford",
+                    f"Jaká je nejkratší cesta (Bellman-Ford) z u{bf['source']} do u{bf['target']}?",
+                    f"Cesta: {' → '.join(map(str, bf['path']))}, Vzdálenost: {bf['distance']}"
+                ])
+
+        # Maximální tok a minimální řez
+        if "max_flow" in algos:
+            mf = algos["max_flow"]
+            if mf.get("error") is None:
+                writer.writerow([
+                    graph_id,
+                    description,
+                    "max_flow",
+                    f"Jaká je velikost maximálního toku (a minimálního řezu) z u{mf.get('source', 0)} do u{mf.get('sink', '?')}?",
+                    f"Maximální tok: {mf['max_flow']}"
+                ])
+
+        # Barvení grafu
+        if "coloring" in algos:
+            col = algos["coloring"]
+            if col.get("error") is None:
+                writer.writerow([
+                    graph_id,
+                    description,
+                    "graph_coloring",
+                    "Jaký je horní odhad chromatického čísla (počet barev při greedy barvení)?",
+                    f"Počet barev: {col['chromatic_number']}, Obarvení: {col['coloring']}"
+                ])
+
+        # Eulerovský tah / kružnice
+        if "euler" in algos:
+            eu = algos["euler"]
+            if eu.get("error") is None:
+                writer.writerow([
+                    graph_id,
+                    description,
+                    "euler_check",
+                    "Obsahuje graf Eulerovský tah nebo Eulerovskou kružnici?",
+                    f"Kružnice: {'Ano' if eu['has_euler_circuit'] else 'Ne'}, Tah: {'Ano' if eu['has_euler_path'] else 'Ne'}"
+                ])
+
+        # Hamiltonovská cesta / kružnice
+        if "hamilton" in algos:
+            hm = algos["hamilton"]
+            if hm.get("error") is None:
+                writer.writerow([
+                    graph_id,
+                    description,
+                    "hamilton_check",
+                    "Obsahuje graf Hamiltonovskou cestu nebo kružnici?",
+                    f"Kružnice: {'Ano' if hm['has_hamilton_cycle'] else 'Ne'}, Cesta: {'Ano' if hm['has_hamilton_path'] else 'Ne'}"
+                ])
+
         # Vlastnosti grafu
         writer.writerow([
             graph_id,

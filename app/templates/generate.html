@@ -152,30 +152,72 @@
                     <h5 class="mb-0"><i class="bi bi-cpu me-2"></i>Algoritmy k výpočtu</h5>
                 </div>
                 <div class="card-body">
-                    <div class="form-check mb-3">
+                    <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" id="algo_shortest_path"
                                name="algo_shortest_path" checked>
                         <label class="form-check-label" for="algo_shortest_path">
                             Nejkratší cesta (Dijkstra)
                         </label>
                     </div>
-                    <div class="form-check mb-3">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="algo_bellman_ford"
+                               name="algo_bellman_ford" checked>
+                        <label class="form-check-label" for="algo_bellman_ford">
+                            Nejkratší cesta i se zápornými vahami (Bellman-Ford)
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" id="algo_mst"
                                name="algo_mst" checked>
                         <label class="form-check-label" for="algo_mst">
                             Minimální kostra (MST — Kruskal)
                         </label>
                     </div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="algo_topological"
-                               name="algo_topological">
-                        <label class="form-check-label" for="algo_topological">
-                            Topologické třídění
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="algo_max_flow"
+                               name="algo_max_flow" checked>
+                        <label class="form-check-label" for="algo_max_flow">
+                            Maximální tok v síti & minimální řez (Ford-Fulkerson)
                         </label>
                     </div>
-                    <div class="form-check mb-3">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="algo_coloring"
+                               name="algo_coloring" checked>
+                        <label class="form-check-label" for="algo_coloring">
+                            Barvení grafu & chromatické číslo (Welsh-Powell)
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="algo_euler"
+                               name="algo_euler" checked>
+                        <label class="form-check-label" for="algo_euler">
+                            Eulerovský tah a kružnice
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="algo_hamilton"
+                               name="algo_hamilton" checked>
+                        <label class="form-check-label" for="algo_hamilton">
+                            Hamiltonovská cesta a kružnice
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="algo_components"
+                               name="algo_components" checked>
+                        <label class="form-check-label" for="algo_components">
+                            Komponenty souvislosti (SCC), artikulace a mosty
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="algo_topological"
+                               name="algo_topological" checked>
+                        <label class="form-check-label" for="algo_topological">
+                            Topologické třídění (pro orientované grafy)
+                        </label>
+                    </div>
+                    <div class="form-check mb-0">
                         <input class="form-check-input" type="checkbox" id="algo_bipartite"
-                               name="algo_bipartite">
+                               name="algo_bipartite" checked>
                         <label class="form-check-label" for="algo_bipartite">
                             Ověření bipartitnosti
                         </label>

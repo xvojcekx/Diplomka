@@ -376,8 +376,271 @@
         </div>
     </div>
     {% endif %}
+
+    {% if graph.algorithms.bellman_ford is defined %}
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-compass me-2"></i>Bellman-Ford (i záporné váhy)</h6>
+            </div>
+            <div class="card-body">
+                {% set bf = graph.algorithms.bellman_ford %}
+                {% if bf.error %}
+                <div class="alert alert-warning small mb-0">{{ bf.error }}</div>
+                {% else %}
+                <p><strong>Cesta (u{{ bf.source }} → u{{ bf.target }}):</strong>
+                    <span class="font-monospace">{{ bf.path | join(' → ') }}</span>
+                </p>
+                <p><strong>Vzdálenost:</strong>
+                    <span class="badge bg-primary fs-6">{{ bf.distance }}</span>
+                </p>
+                <p class="mb-1"><strong>Vzdálenosti ze zdroje u{{ bf.source }} do všech uzlů:</strong></p>
+                <div class="d-flex flex-wrap gap-1">
+                    {% for node_lbl, dist_val in bf.distances.items() %}
+                    <span class="badge bg-light text-dark border font-monospace">{{ node_lbl }}: {{ dist_val }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if graph.algorithms.max_flow is defined %}
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-water me-2"></i>Maximální tok a minimální řez (Ford-Fulkerson)</h6>
+            </div>
+            <div class="card-body">
+                {% set mf = graph.algorithms.max_flow %}
+                {% if mf.error %}
+                <div class="alert alert-warning small mb-0">{{ mf.error }}</div>
+                {% else %}
+                <p class="mb-2">
+                    <strong>Zdroj → Spotřebič:</strong>
+                    <span class="font-monospace">u{{ mf.source }} → u{{ mf.sink }}</span>
+                </p>
+                <p class="mb-2">
+                    <strong>Maximální tok (= kapacita min. řezu):</strong>
+                    <span class="badge bg-success fs-6">{{ mf.max_flow }}</span>
+                </p>
+                {% if mf.min_cut_sets %}
+                <p class="small mb-2">
+                    <strong>Minimální řez (rozklad S / T):</strong>
+                    <span class="font-monospace">S = {u{{ mf.min_cut_sets[0] | join(', u') }}}</span> |
+                    <span class="font-monospace">T = {u{{ mf.min_cut_sets[1] | join(', u') }}}</span>
+                </p>
+                {% endif %}
+                {% if mf.min_cut_edges %}
+                <p class="small mb-0">
+                    <strong>Kritické hrany řezu:</strong>
+                    {% for ce in mf.min_cut_edges %}
+                    <span class="badge bg-light text-dark border font-monospace">u{{ ce.source }}→u{{ ce.target }} (kap. {{ ce.capacity }})</span>
+                    {% endfor %}
+                </p>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if graph.algorithms.coloring is defined %}
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-palette me-2"></i>Barvení grafu (Welsh-Powell / Greedy)</h6>
+            </div>
+            <div class="card-body">
+                {% set col = graph.algorithms.coloring %}
+                {% if col.error %}
+                <div class="alert alert-warning small mb-0">{{ col.error }}</div>
+                {% else %}
+                <p><strong>Počet použitých barev (horní odhad $\chi(G)$):</strong>
+                    <span class="badge bg-primary fs-6">{{ col.chromatic_number }}</span>
+                </p>
+                {% if col.color_classes %}
+                {% for cname, cnodes in col.color_classes.items() %}
+                <div class="small mb-1">
+                    <strong>{{ cname }}:</strong>
+                    <span class="font-monospace">{{ cnodes | join(', ') }}</span>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if graph.algorithms.euler is defined %}
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-bezier2 me-2"></i>Eulerovský tah a kružnice</h6>
+            </div>
+            <div class="card-body">
+                {% set eu = graph.algorithms.euler %}
+                {% if eu.error %}
+                <div class="alert alert-warning small mb-0">{{ eu.error }}</div>
+                {% else %}
+                <p class="mb-2">
+                    <strong>Eulerovská kružnice:</strong>
+                    {% if eu.has_euler_circuit %}
+                    <span class="badge bg-success">Ano</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Ne</span>
+                    {% endif %}
+                    <strong class="ms-3">Eulerovský tah:</strong>
+                    {% if eu.has_euler_path %}
+                    <span class="badge bg-success">Ano</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Ne</span>
+                    {% endif %}
+                </p>
+                {% if eu.path %}
+                <p class="mb-1 small"><strong>Posloupnost hran tahu:</strong></p>
+                <div class="p-2 bg-light border rounded font-monospace small">
+                    {{ eu.path | join(', ') }}
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if graph.algorithms.hamilton is defined %}
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-arrow-repeat me-2"></i>Hamiltonovská cesta a kružnice</h6>
+            </div>
+            <div class="card-body">
+                {% set hm = graph.algorithms.hamilton %}
+                {% if hm.error %}
+                <div class="alert alert-warning small mb-0">{{ hm.error }}</div>
+                {% else %}
+                <p class="mb-2">
+                    <strong>Hamiltonovská kružnice:</strong>
+                    {% if hm.has_hamilton_cycle %}
+                    <span class="badge bg-success">Ano</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Ne</span>
+                    {% endif %}
+                    <strong class="ms-3">Hamiltonovská cesta:</strong>
+                    {% if hm.has_hamilton_path %}
+                    <span class="badge bg-success">Ano</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Ne</span>
+                    {% endif %}
+                </p>
+                {% if hm.cycle %}
+                <p class="mb-1 small"><strong>Nalezená kružnice:</strong></p>
+                <div class="p-2 bg-light border rounded font-monospace small mb-2">
+                    {{ hm.cycle | join(' → ') }}
+                </div>
+                {% elif hm.path %}
+                <p class="mb-1 small"><strong>Nalezená cesta:</strong></p>
+                <div class="p-2 bg-light border rounded font-monospace small">
+                    {{ hm.path | join(' → ') }}
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if graph.algorithms.components is defined %}
+    <div class="col-lg-6">
+        <div class="card bg-white shadow-sm border-light-subtle h-100">
+            <div class="card-header border-light-subtle">
+                <h6 class="mb-0"><i class="bi bi-boxes me-2"></i>Komponenty souvislosti, artikulace a mosty</h6>
+            </div>
+            <div class="card-body">
+                {% set cp = graph.algorithms.components %}
+                {% if cp.error %}
+                <div class="alert alert-warning small mb-0">{{ cp.error }}</div>
+                {% elif cp.is_directed %}
+                <p class="mb-2">
+                    <strong>Silně souvislé komponenty (SCC):</strong>
+                    <span class="badge bg-primary">{{ cp.strongly_connected_count }}</span>
+                    <strong class="ms-2">Slabě souvislé:</strong>
+                    <span class="badge bg-secondary">{{ cp.weakly_connected_count }}</span>
+                </p>
+                <div class="small">
+                    {% for scc in cp.strongly_connected_components %}
+                    <span class="badge bg-light text-dark border font-monospace me-1 mb-1">{ {{- scc | join(', ') -}} }</span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="mb-2">
+                    <strong>Počet komponent souvislosti:</strong>
+                    <span class="badge bg-primary">{{ cp.connected_components_count }}</span>
+                </p>
+                <p class="mb-2 small">
+                    <strong>Artikulace (kritické uzly):</strong>
+                    {% if cp.articulation_points %}
+                    <span class="font-monospace text-danger fw-medium">{{ cp.articulation_points | join(', ') }}</span>
+                    {% else %}
+                    <span class="text-muted">Žádné</span>
+                    {% endif %}
+                </p>
+                <p class="mb-0 small">
+                    <strong>Mosty (kritické hrany):</strong>
+                    {% if cp.bridges %}
+                    <span class="font-monospace text-danger fw-medium">{{ cp.bridges | join(', ') }}</span>
+                    {% else %}
+                    <span class="text-muted">Žádné</span>
+                    {% endif %}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
+
+<!-- Validátor studentských odpovědí (Grader pro víceznačné úlohy) -->
+<h3 class="mt-5 mb-3"><i class="bi bi-patch-check me-2"></i>Automatický validátor studentských řešení (Grader)</h3>
+<div class="card bg-white shadow-sm border-light-subtle mb-4">
+    <div class="card-header border-light-subtle d-flex justify-content-between align-items-center">
+        <span class="small text-muted">
+            Ověřuje i <strong>alternativní správná řešení</strong> (např. jinou minimální kostru se stejnou vahou, alternativní nejkratší cestu nebo jiné platné topologické pořadí).
+        </span>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Grader v2</span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small fw-medium mb-1">Typ kontrolované úlohy</label>
+                <select class="form-select" id="graderTaskType">
+                    {% if not graph.properties.is_directed %}
+                    <option value="mst">Minimální kostra (MST — hrany nebo váha)</option>
+                    {% endif %}
+                    <option value="shortest_path">Nejkratší cesta (posloupnost uzlů nebo délka)</option>
+                    {% if graph.properties.is_directed %}
+                    <option value="topological_sort">Topologické uspořádání (pořadí uzlů)</option>
+                    {% endif %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-medium mb-1">Studentská odpověď</label>
+                <input type="text" class="form-control font-monospace" id="graderAnswer"
+                       placeholder="Např. h1, h2, h4 nebo u0 -> u2 -> u4 nebo celková váha">
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-primary w-100" id="btnRunGrader">
+                    <i class="bi bi-check2-circle me-1"></i>Ověřit
+                </button>
+            </div>
+        </div>
+        <div id="graderResultBox" class="mt-3" style="display: none;"></div>
+    </div>
+</div>
 
 <!-- Matice sousednosti -->
 <h3 class="mt-5 mb-3"><i class="bi bi-grid-3x3 me-2"></i>Matice sousednosti</h3>
@@ -397,7 +660,7 @@
                 <tr>
                     <th class="bg-light border-end text-dark font-monospace align-middle">u{{ row_idx }}</th>
                     {% for val in graph.adjacency_matrix[row_idx] %}
-                    <td class="align-middle {% if val > 0 %}table-primary fw-medium px-1{% else %}text-muted px-1{% endif %}" style="min-width: 32px">
+                    <td class="align-middle {% if val != 0 %}table-primary fw-medium px-1{% else %}text-muted px-1{% endif %}" style="min-width: 32px">
                         {{ val | int if val == val | int else val }}
                     </td>
                     {% endfor %}
@@ -507,7 +770,51 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
     }
+
+    const btnRunGrader = document.getElementById("btnRunGrader");
+    const graderTaskType = document.getElementById("graderTaskType");
+    const graderAnswer = document.getElementById("graderAnswer");
+    const graderResultBox = document.getElementById("graderResultBox");
+    if (btnRunGrader && graderTaskType && graderAnswer && graderResultBox) {
+        btnRunGrader.addEventListener("click", async function() {
+            const src = spSource ? spSource.value : 0;
+            const tgt = spTarget ? spTarget.value : "";
+            btnRunGrader.disabled = true;
+            try {
+                const res = await fetch(`/api/graph/{{ graph.graph_id }}/grade`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        task_type: graderTaskType.value,
+                        answer: graderAnswer.value,
+                        source: src,
+                        target: tgt
+                    })
+                });
+                const data = await res.json();
+                graderResultBox.style.display = "block";
+                let alertClass = data.passed ? "alert-success" : (data.manual_review ? "alert-warning" : "alert-danger");
+                let icon = data.passed ? "bi-check-circle-fill" : (data.manual_review ? "bi-exclamation-triangle-fill" : "bi-x-circle-fill");
+                graderResultBox.innerHTML = `
+                    <div class="alert ${alertClass} mb-0 d-flex align-items-center justify-content-between">
+                        <div>
+                            <i class="bi ${icon} me-2"></i>
+                            <strong>${data.passed ? 'Správně!' : (data.manual_review ? 'Vyžaduje ruční kontrolu' : 'Nesprávně')}</strong>
+                            — ${data.feedback}
+                        </div>
+                        <span class="badge bg-dark ms-3">Skóre: ${data.score ?? 0} %</span>
+                    </div>
+                `;
+            } catch (e) {
+                graderResultBox.style.display = "block";
+                graderResultBox.innerHTML = `<div class="alert alert-danger mb-0">Chyba při komunikaci se serverem.</div>`;
+            } finally {
+                btnRunGrader.disabled = false;
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
+
 

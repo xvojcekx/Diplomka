@@ -36,7 +36,15 @@ from solver import (
     dijkstra_steps,
     bfs_steps,
     dfs_steps,
+    ford_fulkerson_max_flow,
+    bellman_ford,
+    bellman_ford_steps,
+    graph_coloring,
+    euler_path,
+    hamilton_path,
+    components_and_bridges,
 )
+from grader import validate_student_answer
 from exporter import export_to_csv, export_to_json, export_to_tg, parse_tg
 from database import (
     init_db, save_graph, get_graph, get_all_graphs,
@@ -253,9 +261,15 @@ async def generate_post(
     bipartite: bool = Form(False),
     seed: str = Form(""),
     algo_shortest_path: bool = Form(False),
+    algo_bellman_ford: bool = Form(True),
     algo_mst: bool = Form(False),
     algo_topological: bool = Form(False),
     algo_bipartite: bool = Form(False),
+    algo_max_flow: bool = Form(True),
+    algo_coloring: bool = Form(True),
+    algo_euler: bool = Form(True),
+    algo_hamilton: bool = Form(True),
+    algo_components: bool = Form(True),
 ):
     """Zpracuje formulář, vygeneruje grafy."""
     base_seed = int(seed) if seed.strip() else None
@@ -316,11 +330,15 @@ async def generate_post(
 
             # Algoritmy
             algos = {}
+            nodes = sorted(G.nodes())
 
-            if algo_shortest_path and G.number_of_nodes() >= 2:
-                nodes = sorted(G.nodes())
+            if algo_shortest_path and len(nodes) >= 2:
                 source, target = nodes[0], nodes[-1]
                 algos["shortest_path"] = shortest_path_dijkstra(G, source, target)
+
+            if algo_bellman_ford and len(nodes) >= 2:
+                source, target = nodes[0], nodes[-1]
+                algos["bellman_ford"] = bellman_ford(G, source, target)
 
             if algo_mst and not directed:
                 algos["mst"] = minimum_spanning_tree(G)
@@ -330,6 +348,21 @@ async def generate_post(
 
             if algo_bipartite:
                 algos["bipartite"] = is_bipartite_check(G)
+
+            if algo_max_flow and len(nodes) >= 2:
+                algos["max_flow"] = ford_fulkerson_max_flow(G, nodes[0], nodes[-1])
+
+            if algo_coloring:
+                algos["coloring"] = graph_coloring(G)
+
+            if algo_euler:
+                algos["euler"] = euler_path(G)
+
+            if algo_hamilton and len(nodes) <= 20:
+                algos["hamilton"] = hamilton_path(G)
+
+            if algo_components:
+                algos["components"] = components_and_bridges(G)
 
             # Ulož do SQLite databáze
             graph_record = {
@@ -386,14 +419,21 @@ async def import_tg_post(
         props = graph_properties(G)
 
         algos = {}
-        if G.number_of_nodes() >= 2:
-            nodes = sorted(G.nodes())
+        nodes = sorted(G.nodes())
+        if len(nodes) >= 2:
             algos["shortest_path"] = shortest_path_dijkstra(G, nodes[0], nodes[-1])
+            algos["bellman_ford"] = bellman_ford(G, nodes[0], nodes[-1])
+            algos["max_flow"] = ford_fulkerson_max_flow(G, nodes[0], nodes[-1])
         if not directed:
             algos["mst"] = minimum_spanning_tree(G)
         if directed:
             algos["topological_sort"] = topological_sort(G)
         algos["bipartite"] = is_bipartite_check(G)
+        algos["coloring"] = graph_coloring(G)
+        algos["euler"] = euler_path(G)
+        if len(nodes) <= 20:
+            algos["hamilton"] = hamilton_path(G)
+        algos["components"] = components_and_bridges(G)
 
         config_dict = {
             "node_count": parsed["node_count"],
@@ -524,6 +564,43 @@ async def api_graph_shortest_path(graph_id: str, source: int = 0, target: int = 
     return sp
 
 
+@app.post("/api/graph/{graph_id}/grade")
+async def api_graph_grade(request: Request, graph_id: str):
+    """
+    Validátor studentských řešení (Grader pro víceznačné úlohy).
+    Ověří, zda studentova odpověď (např. libovolná platná minimální kostra,
+    nejkratší cesta nebo topologické uspořádání) splňuje podmínky grafu.
+    """
+    graph_data = get_graph(graph_id)
+    if not graph_data:
+        return JSONResponse({"error": "Graf nenalezen"}, status_code=404)
+
+    try:
+        payload = await request.json()
+    except Exception:
+        form = await request.form()
+        payload = dict(form)
+
+    task_type = payload.get("task_type", "mst")
+    student_answer = payload.get("answer", "")
+    source = int(payload.get("source", 0))
+    target = payload.get("target")
+    target = int(target) if target is not None and str(target).strip() != "" else None
+
+    G = _reconstruct_graph(graph_data)
+    edge_list = graph_data.get("edge_list", [])
+
+    result = validate_student_answer(
+        G=G,
+        edge_list=edge_list,
+        task_type=task_type,
+        student_answer=student_answer,
+        source=source,
+        target=target,
+    )
+    return result
+
+
 @app.get("/api/graph/{graph_id}")
 async def api_graph(graph_id: str):
     """JSON endpoint pro interaktivní Pyvis refresh a nativní SVG zobrazení."""
@@ -645,6 +722,7 @@ async def visualize_page(request: Request, graph_id: str):
 
     if G.number_of_nodes() >= 2:
         available_algos.append({"id": "dijkstra", "name": "Dijkstrův algoritmus (nejkratší cesta)"})
+        available_algos.append({"id": "bellman_ford", "name": "Bellman-Fordův algoritmus (i záporné váhy)"})
 
     available_algos.append({"id": "bfs", "name": "BFS (prohledávání do šířky)"})
     available_algos.append({"id": "dfs", "name": "DFS (prohledávání do hloubky)"})
@@ -679,6 +757,8 @@ async def api_visualize(graph_id: str, algorithm: str, source: int = None, targe
         result = boruvka_steps(G)
     elif algorithm == "dijkstra":
         result = dijkstra_steps(G, source, target)
+    elif algorithm == "bellman_ford":
+        result = bellman_ford_steps(G, source, target)
     elif algorithm == "bfs":
         result = bfs_steps(G, source)
     elif algorithm == "dfs":

@@ -192,7 +192,7 @@
         
         function updateNodeSelectors() {
             const alg = algoSelect.value;
-            if (alg === 'dijkstra') {
+            if (alg === 'dijkstra' || alg === 'bellman_ford') {
                 sourceCont.style.display = 'block';
                 targetCont.style.display = 'block';
             } else if (alg === 'bfs' || alg === 'dfs') {

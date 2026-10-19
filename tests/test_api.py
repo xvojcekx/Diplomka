@@ -188,8 +188,18 @@ class TestExportEndpoints:
         assert sp_res.status_code == 200
         assert sp_res.json()["distance"] == 7
 
+        # Ověř Grader API pro víceznačné úlohy
+        grade_ok = client.post(f"/api/graph/{graph_id}/grade", json={
+            "task_type": "mst",
+            "answer": "h1, h2"
+        })
+        assert grade_ok.status_code == 200
+        assert grade_ok.json()["passed"] is True
+        assert grade_ok.json()["score"] == 100
+
     def test_delete_all_graphs(self, client):
         res = client.post("/api/graphs/delete-all", headers={"accept": "application/json"})
         assert res.status_code == 200
         assert res.json()["status"] == "deleted_all"
+
 

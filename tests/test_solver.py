@@ -249,3 +249,78 @@ class TestAlgorithmSteps:
         from solver import boruvka_steps
         steps = boruvka_steps(simple_weighted_graph)
         assert len(steps["steps"]) > 0
+
+    def test_bellman_ford_steps(self, simple_weighted_graph):
+        from solver import bellman_ford_steps
+        steps = bellman_ford_steps(simple_weighted_graph, source=0, target=4)
+        assert steps["error"] is None
+        assert len(steps["steps"]) > 0
+
+
+# ============================================================================
+# TESTY: Pokročilé algoritmy (Sekce A) a Validátor (Grader)
+# ============================================================================
+
+class TestAdvancedAlgorithmsAndGrader:
+    """Testy pro Bellman-Ford, Max Flow, Barvení, Euler, Hamilton, SCC/Mosty a Grader."""
+
+    def test_bellman_ford_negative_weights(self):
+        from solver import bellman_ford
+        G = nx.DiGraph()
+        G.add_edge(0, 1, weight=4)
+        G.add_edge(0, 2, weight=5)
+        G.add_edge(2, 1, weight=-2)
+        res = bellman_ford(G, 0, 1)
+        assert res["error"] is None
+        assert res["distance"] == 3
+        assert res["path"] == [0, 2, 1]
+
+    def test_max_flow_and_min_cut(self, simple_weighted_graph):
+        from solver import ford_fulkerson_max_flow
+        res = ford_fulkerson_max_flow(simple_weighted_graph, 0, 4)
+        assert res["error"] is None
+        assert res["max_flow"] == 3
+        assert res["min_cut_value"] == 3
+
+    def test_graph_coloring(self, bipartite_graph):
+        from solver import graph_coloring
+        res = graph_coloring(bipartite_graph)
+        assert res["error"] is None
+        assert res["chromatic_number"] == 2
+
+    def test_euler_and_hamilton(self):
+        from solver import euler_path, hamilton_path
+        # Cyklus C4 má jak Eulerovskou kružnici, tak Hamiltonovskou kružnici
+        G = nx.cycle_graph(4)
+        eu = euler_path(G)
+        hm = hamilton_path(G)
+        assert eu["has_euler_circuit"] is True
+        assert hm["has_hamilton_cycle"] is True
+
+    def test_components_and_bridges(self, simple_weighted_graph):
+        from solver import components_and_bridges
+        res = components_and_bridges(simple_weighted_graph)
+        assert res["error"] is None
+        # Hrana 3-4 je most a uzel 3 je artikulace
+        assert "u3" in res["articulation_points"]
+        assert "u3–u4" in res["bridges"]
+
+    def test_grader_multi_solution_mst_and_toposort(self):
+        from grader import validate_mst, validate_topological_sort
+        # Čtverec se všemi vahami = 1 má 4 různé minimální kostry o váze 3
+        G = nx.cycle_graph(4)
+        for u, v in G.edges():
+            G[u][v]["weight"] = 1
+        edge_list = [{"source": u, "target": v, "weight": 1} for u, v in G.edges()]
+
+        res1 = validate_mst(G, edge_list, "0-1, 1-2, 2-3")
+        res2 = validate_mst(G, edge_list, "0-3, 3-2, 2-1")
+        assert res1["passed"] is True
+        assert res2["passed"] is True
+
+        # DAG s větvemi 0->1, 0->2, 1->3, 2->3 má 2 platná topologická pořadí: 0,1,2,3 i 0,2,1,3
+        dag = nx.DiGraph([(0, 1), (0, 2), (1, 3), (2, 3)])
+        assert validate_topological_sort(dag, "u0, u1, u2, u3")["passed"] is True
+        assert validate_topological_sort(dag, "u0, u2, u1, u3")["passed"] is True
+        assert validate_topological_sort(dag, "u0, u3, u1, u2")["passed"] is False
+

@@ -31,10 +31,23 @@ Tato webová aplikace slouží k **automatizovanému generování, analýze, int
 * **Základní invarianty a vlastnosti grafu:** Počet uzlů a hran, orientovanost, souvislost, hustota grafu, průměr grafu (diameter), stupňová posloupnost, extrémy stupňů uzlů a vah hran.
 * **Automatické řešení úloh:**
   * **Dijkstrův algoritmus** — nejkratší cesta a její délka (s možností interaktivního přepočtu pro libovolnou dvojici uzlů přímo v detailu grafu).
+  * **Bellman-Fordův algoritmus** — nejkratší cesty i pro grafy se zápornými vahami hran včetně detekce záporných cyklů.
   * **Kruskalův algoritmus** — minimální kostra grafu (MST) a její celková váha.
+  * **Edmonds-Karp / Ford-Fulkerson** — maximální tok v síti ze zdroje do spotřebiče a rozklad uzlů/hran tvořících **minimální řez**.
+  * **Barvení grafu (Welsh-Powell / Greedy)** — obarvení uzlů, rozdělení do barevných tříd a horní odhad chromatického čísla $\chi(G)$.
+  * **Eulerovské grafy** — ověření existence Eulerovského tahu a Eulerovské kružnice včetně vypsání posloupnosti hran.
+  * **Hamiltonovské grafy** — exaktní vyhledání Hamiltonovské cesty a Hamiltonovské kružnice (backtracking).
+  * **Analýza souvislosti a kritických prvků** — silně souvislé komponenty (**SCC** — Tarjanův algoritmus) pro orientované grafy, **artikulace** (kritické uzly) a **mosty** (kritické hrany) pro neorientované grafy.
   * **Topologické třídění** — ověření acykličnosti a výpis topologického uspořádání pro orientované grafy.
   * **Test bipartitnosti** — rozdělení uzlů do dvou disjunktních množin $U$ a $V$.
-* **Krokování algoritmů pro výuku:** Detailní generování jednotlivých kroků pro **BFS**, **DFS**, **Dijkstrův**, **Kruskalův** a **Borůvkův** algoritmus.
+* **Krokování algoritmů pro výuku:** Detailní generování jednotlivých kroků pro **BFS**, **DFS**, **Dijkstrův**, **Bellman-Fordův**, **Kruskalův** a **Borůvkův** algoritmus.
+
+### Automatický validátor studentských řešení — Grader v2 (`app/grader.py`)
+* Řeší klíčový didaktický problém **víceznačných úloh**, kde má jeden graf více různých, ale stejně správných řešení:
+  * **Validace minimální kostry (MST):** Uzná libovolnou podmnožinu hran (např. `h1, h3, h5` nebo `u0-u1, u1-u2`), která je souvislá, bez cyklů a dosahuje minimální možné váhy — i když se liší od referenční kostry vrácené Kruskalovým algoritmem.
+  * **Validace nejkratší cesty:** Uzná libovolnou cestu ze zdroje do cíle, jejíž součet vah se rovná optimální nejkratší vzdálenosti.
+  * **Validace topologického uspořádání:** Ověří, že pro každou orientovanou hranu $(u, v)$ se uzel $u$ nachází v odpovědi studenta před uzlem $v$.
+* Při neočekávaném nebo nečitelném formátu odpovědi automaticky nastaví příznak `manual_review: True` pro upozornění vyučujícího.
 
 ### Vizualizace a grafický editor (`app/static/js/graph_visualizer.js`)
 * **Interaktivní pohled (Pyvis):** Dynamický fyzikální model (zoom, drag & drop uzlů).
@@ -57,7 +70,7 @@ Tato webová aplikace slouží k **automatizovanému generování, analýze, int
   * `graph_positions` — uložené $(x, y)$ souřadnice uzlů z grafického editoru.
 
 ### Automatizované testy a CI/CD (`tests/`, `.github/workflows/tests.yml`)
-* Sada **42 automatizovaných testů** postavených na frameworku **Pytest** (unit testy algoritmů v `test_solver.py`, testy generátoru v `test_generator.py` a integrační testy REST API v `test_api.py`).
+* Sada **49 automatizovaných testů** postavených na frameworku **Pytest** (unit testy algoritmů a validátoru v `test_solver.py`, testy generátoru v `test_generator.py` a integrační testy REST API v `test_api.py`).
 * Testy běží nad izolovanou testovací databází (`TESTING=1`), takže neovlivňují produkční data.
 * Součástí repozitáře je **GitHub Actions CI/CD pipeline**, která spouští testy při každém `push` nebo `pull_request`.
 
@@ -72,6 +85,7 @@ Tato webová aplikace slouží k **automatizovanému generování, analýze, int
 │   ├── database.py              # DAO vrstva pro SQLite (graphs, graph_edges, graph_positions)
 │   ├── generator.py             # Generátor grafů nad knihovnou NetworkX
 │   ├── solver.py                # Výpočet vlastností grafu, algoritmy a krokování pro vizualizér
+│   ├── grader.py                # Automatický validátor studentských odpovědí (Grader v2)
 │   ├── exporter.py              # Export do .tg, CSV, JSON a parser vstupního .tg formátu
 │   ├── models.py                # Pydantic schémata pro validaci vstupů a konfigurace
 │   ├── templates/               # Jinja2 HTML šablony (Bootstrap 5)
