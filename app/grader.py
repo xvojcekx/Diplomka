@@ -303,14 +303,23 @@ def validate_shortest_path(G: nx.Graph, source: int, target: int, student_answer
             }
         student_dist += G[u][v].get("weight", 1) if nx.is_weighted(G) else 1
 
+    if isinstance(ref_dist, float) and ref_dist.is_integer():
+        ref_dist = int(ref_dist)
+    if isinstance(student_dist, float) and student_dist.is_integer():
+        student_dist = int(student_dist)
+
+    def _lbl(idx: int) -> str:
+        letter = chr(65 + idx) if idx < 26 else f"u{idx}"
+        return f"{letter} ({idx})"
+
     if abs(student_dist - ref_dist) > 1e-6:
         return {
             "passed": False,
             "score": 50,
             "manual_review": False,
             "feedback": (
-                f"Zadaná posloupnost je platná cesta z u{source} do u{target}, ale má délku {student_dist}. "
-                f"Nejkratší možná cesta má délku {ref_dist} (např. {' → '.join(f'u{x}' for x in ref_path)})."
+                f"Zadaná posloupnost je platná cesta z {_lbl(source)} do {_lbl(target)}, ale má délku {student_dist}. "
+                f"Nejkratší možná cesta má délku {ref_dist} (např. {' → '.join(_lbl(x) for x in ref_path)})."
             ),
         }
 
@@ -318,7 +327,7 @@ def validate_shortest_path(G: nx.Graph, source: int, target: int, student_answer
         "passed": True,
         "score": 100,
         "manual_review": False,
-        "feedback": f"Výborně! Cesta {' → '.join(f'u{x}' for x in path_nodes)} je platná nejkratší cesta s minimální délkou {ref_dist}.",
+        "feedback": f"Výborně! Cesta {' → '.join(_lbl(x) for x in path_nodes)} je platná nejkratší cesta s minimální délkou {ref_dist}.",
     }
 
 

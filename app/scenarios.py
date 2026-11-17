@@ -160,28 +160,46 @@ def _find_edge_disjoint_stopover_path(
 
     simple_paths_s_m.sort(key=lambda p: path_weight(G, p))
 
-    for p1 in simple_paths_s_m[:40]:
-        len1 = path_weight(G, p1)
-        if best_total is not None and len1 >= best_total:
-            break
-        # Vytvoř kopii grafu bez hran použitých v p1
-        G_rem = G.copy()
-        for i in range(len(p1) - 1):
-            u, v = p1[i], p1[i + 1]
-            if G_rem.has_edge(u, v):
-                G_rem.remove_edge(u, v)
-        try:
-            p2 = nx.shortest_path(G_rem, mid_node, end_node, weight="weight")
-            len2 = path_weight(G_rem, p2)
-            total = len1 + len2
-            if best_total is None or total < best_total:
-                best_total = total
-                best_p1 = p1
-                best_p2 = p2
-                best_len1 = len1
-                best_len2 = len2
-        except (nx.NetworkXNoPath, nx.NodeNotFound):
-            continue
+    def _search_disjoint(avoid_vertices: bool):
+        b_tot = None
+        b_p1: List[int] = []
+        b_p2: List[int] = []
+        b_l1 = 0
+        b_l2 = 0
+        for p1 in simple_paths_s_m[:40]:
+            if avoid_vertices and end_node in p1[:-1]:
+                continue
+            len1 = path_weight(G, p1)
+            if b_tot is not None and len1 >= b_tot:
+                break
+            G_rem = G.copy()
+            for i in range(len(p1) - 1):
+                u, v = p1[i], p1[i + 1]
+                if G_rem.has_edge(u, v):
+                    G_rem.remove_edge(u, v)
+            if avoid_vertices:
+                for visited_u in p1[:-1]:
+                    if visited_u in G_rem:
+                        G_rem.remove_node(visited_u)
+            try:
+                p2 = nx.shortest_path(G_rem, mid_node, end_node, weight="weight")
+                len2 = path_weight(G_rem, p2)
+                total = len1 + len2
+                if b_tot is None or total < b_tot:
+                    b_tot = total
+                    b_p1 = p1
+                    b_p2 = p2
+                    b_l1 = len1
+                    b_l2 = len2
+            except (nx.NetworkXNoPath, nx.NodeNotFound):
+                continue
+        return b_tot, b_p1, b_p2, b_l1, b_l2
+
+    # Nejprve preferuj vrcholově prostou cestu S -> M -> T (bez vracení přes již navštívené uzly),
+    # teprve pokud neexistuje, povol opakování uzlu při zachování hranové disjunktnosti.
+    best_total, best_p1, best_p2, best_len1, best_len2 = _search_disjoint(avoid_vertices=True)
+    if best_total is None:
+        best_total, best_p1, best_p2, best_len1, best_len2 = _search_disjoint(avoid_vertices=False)
 
     if best_total is not None:
         return {
@@ -338,11 +356,21 @@ def _scenario_dijkstra_stopover(
         search_order = candidates_off_direct + [n for n in candidates_all if n not in candidates_off_direct]
 
         chosen_mid = search_order[0] if search_order else start_node
+        found_vertex_simple = False
         for cand in search_order:
             test_res = _find_edge_disjoint_stopover_path(G, start_node, cand, end_node)
             if test_res["valid"] and test_res["edge_disjoint"]:
-                chosen_mid = cand
-                break
+                fp = test_res["full_path"]
+                if len(fp) == len(set(fp)):
+                    chosen_mid = cand
+                    found_vertex_simple = True
+                    break
+        if not found_vertex_simple:
+            for cand in search_order:
+                test_res = _find_edge_disjoint_stopover_path(G, start_node, cand, end_node)
+                if test_res["valid"] and test_res["edge_disjoint"]:
+                    chosen_mid = cand
+                    break
         mid_node = chosen_mid
 
     stopover_res = _find_edge_disjoint_stopover_path(G, start_node, mid_node, end_node)

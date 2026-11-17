@@ -242,7 +242,15 @@ def get_graph(graph_id: str) -> Optional[dict]:
         ).fetchall()
 
         edge_list = [
-            {"source": e["source_node"], "target": e["target_node"], "weight": e["weight"]}
+            {
+                "source": e["source_node"],
+                "target": e["target_node"],
+                "weight": (
+                    int(e["weight"])
+                    if e["weight"] is not None and float(e["weight"]).is_integer()
+                    else e["weight"]
+                ),
+            }
             for e in edges
         ]
 

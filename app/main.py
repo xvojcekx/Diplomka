@@ -126,42 +126,54 @@ def _reconstruct_graph(graph_data: dict) -> nx.Graph:
 
 def render_graph_png(G: nx.Graph, graph_id: str) -> str:
     """Vyrenderuje graf jako PNG do /static/graphs/{id}.png"""
-    fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+    fig, ax = plt.subplots(1, 1, figsize=(7.4, 4.9))
 
     seed = 42
-    pos = nx.spring_layout(G, seed=seed, k=2.0)
+    # Nepoužívat váhy hran jako sílu pružin (jinak se hrany s vysokou vahou smrsknou k sobě)
+    if G.number_of_nodes() <= 14 and G.number_of_nodes() >= 3:
+        try:
+            pos = nx.kamada_kawai_layout(G, weight=None)
+        except Exception:
+            pos = nx.spring_layout(G, seed=seed, k=1.8, weight=None)
+    else:
+        pos = nx.spring_layout(G, seed=seed, k=1.8, weight=None)
 
     # Barvy uzlů
-    node_colors = ["#6366f1"] * G.number_of_nodes()
+    node_colors = ["#4f46e5"] * G.number_of_nodes()
 
     # Nakresli uzly
     nx.draw_networkx_nodes(G, pos, ax=ax, node_color=node_colors,
-                           node_size=950, edgecolors="#4338ca", linewidths=2)
+                           node_size=1250, edgecolors="#312e81", linewidths=2.2)
 
     # Nakresli hrany
-    edge_color = "#94a3b8"
+    edge_color = "#64748b"
     if G.is_directed():
         nx.draw_networkx_edges(G, pos, ax=ax, edge_color=edge_color,
-                               arrows=True, arrowsize=20, width=2,
-                               node_size=950,
+                               arrows=True, arrowsize=22, width=2.2,
+                               node_size=1250,
                                connectionstyle="arc3,rad=0.1")
     else:
-        nx.draw_networkx_edges(G, pos, ax=ax, edge_color=edge_color, width=2)
+        nx.draw_networkx_edges(G, pos, ax=ax, edge_color=edge_color, width=2.2)
 
     # Popisky uzlů: sjednocené označení A (0), B (1), ...
     node_labels = {n: f"{node_to_letter(n)} ({n})" for n in G.nodes()}
-    nx.draw_networkx_labels(G, pos, labels=node_labels, ax=ax, font_size=9, font_weight="bold",
+    nx.draw_networkx_labels(G, pos, labels=node_labels, ax=ax, font_size=9.5, font_weight="bold",
                             font_color="white")
 
     # Váhy na hranách
     if nx.is_weighted(G):
-        edge_labels = nx.get_edge_attributes(G, "weight")
+        raw_weights = nx.get_edge_attributes(G, "weight")
+        edge_labels = {
+            k: (int(v) if isinstance(v, float) and v.is_integer() else v)
+            for k, v in raw_weights.items()
+        }
         nx.draw_networkx_edge_labels(G, pos, edge_labels, ax=ax,
-                                     font_size=10, font_color="#dc2626",
-                                     bbox=dict(boxstyle="round,pad=0.2",
-                                              facecolor="white", alpha=0.8))
+                                     font_size=10.5, font_weight="bold", font_color="#b91c1c",
+                                     bbox=dict(boxstyle="round,pad=0.25",
+                                              facecolor="white", edgecolor="#cbd5e1", alpha=0.95))
 
-    ax.set_title(f"Graf {graph_id[:8]}", fontsize=14, fontweight="bold")
+    ax.set_title(f"Graf {graph_id[:8]}", fontsize=12, fontweight="bold", color="#1e293b", pad=10)
+    ax.margins(0.14)
     ax.axis("off")
     fig.tight_layout()
 

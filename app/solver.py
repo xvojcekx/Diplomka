@@ -47,7 +47,7 @@ def shortest_path_dijkstra(G: nx.Graph, source: int, target: int) -> dict:
 
         return {
             "path": path,
-            "distance": float(distance),
+            "distance": int(distance) if float(distance).is_integer() else float(distance),
             "steps": steps,
             "error": None
         }
@@ -96,7 +96,7 @@ def minimum_spanning_tree(G: nx.Graph) -> dict:
 
         return {
             "tree_edges": tree_edges,
-            "total_weight": float(total_weight),
+            "total_weight": int(total_weight) if float(total_weight).is_integer() else float(total_weight),
             "error": None
         }
     except Exception as e:
@@ -570,6 +570,7 @@ def dijkstra_steps(G: nx.Graph, source: int, target: int) -> dict:
                 edge = [int(u), int(v)]
 
                 if new_dist < dist[v]:
+                    old_dist_str = str(dist[v]) if dist[v] != float("inf") else "∞"
                     dist[v] = new_dist
                     prev[v] = u
                     heapq.heappush(pq, (new_dist, int(v)))
@@ -579,7 +580,7 @@ def dijkstra_steps(G: nx.Graph, source: int, target: int) -> dict:
                         "action": "accept",
                         "edge": edge,
                         "weight": w,
-                        "description": f"Relakace hrany {u}→{v} (váha {w}): {d} + {w} = {new_dist} < {dist[v] if dist[v] != new_dist else '∞'} → aktualizujeme.",
+                        "description": f"Relaxace hrany {u}→{v} (váha {w}): {d} + {w} = {new_dist} < {old_dist_str} → aktualizujeme.",
                         "selected_edges": [list(e) for e in path_edges],
                         "current_edge": edge,
                         "highlight_nodes": [int(u), int(v)],

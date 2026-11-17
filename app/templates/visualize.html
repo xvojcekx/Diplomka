@@ -41,7 +41,7 @@
                 </label>
                 <select class="form-select mt-1" id="sourceNodeSelect">
                     {% for n in nodes %}
-                    <option value="{{ n }}">u{{ n }}</option>
+                    <option value="{{ n }}">{{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[n] if n < 26 else "u" ~ n }} ({{ n }})</option>
                     {% endfor %}
                 </select>
             </div>
@@ -51,7 +51,7 @@
                 </label>
                 <select class="form-select mt-1" id="targetNodeSelect">
                     {% for n in nodes %}
-                    <option value="{{ n }}" {% if loop.last %}selected{% endif %}>u{{ n }}</option>
+                    <option value="{{ n }}" {% if loop.last %}selected{% endif %}>{{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[n] if n < 26 else "u" ~ n }} ({{ n }})</option>
                     {% endfor %}
                 </select>
             </div>
