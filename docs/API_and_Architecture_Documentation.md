@@ -2,102 +2,103 @@
 (Dokument pro finální kompletaci diplomové práce)
 
 ## 1. Architektura Aplikace
-Aplikace je postavena na moderním webovém rámci **FastAPI** v jazyce **Python**. Využívá knihovnu **NetworkX** pro komplexní generování, modifikace a analýzu grafů. Jako datové úložiště byla zvolena vestavěná odlehčená databáze **SQLite**, která dokonale vyhovuje potřebám jednoduchého nasazení a persistentního uchování vygenerovaných grafů.
+Aplikace je postavena na moderním asynchronním webovém rámci **FastAPI** v jazyce **Python**. Využívá knihovnu **NetworkX** pro komplexní generování, modifikace a analýzu grafů. Jako datové úložiště byla zvolena vestavěná relační databáze **SQLite** v režimu WAL (`Write-Ahead Logging`), která vyhovuje potřebám kontejnerizovaného nasazení a perzistentního uchování vygenerovaných grafů, jejich pozic a štítků.
 
-Architektonicky se aplikace dělí na několik klíčových vrstev (Separation of Concerns):
-- **Prezentační vrstva (Jinja2 Templates & Bootstrap 5):** Zajišťuje frontendové zobrazení, renderování formulářů a výsledků pomocí responsivního designu.
-- **Aplikační vrstva (FastAPI):** Obsluhuje HTTP požadavky (API endpointy i statické stránky), validuje uživatelské vstupy pomocí Pydantic modelů.
-- **Logická vrstva (Generátory a Solvery):** Zapouzdřuje složitou matematickou logiku generování grafů, výpočtů a řešení algoritmů.
-- **Datová vrstva (SQLite DAO):** Zajišťuje trvalé uložení struktury grafů, pozic uzlů a vypočtených algoritmů. Využívá patternu DAO (Data Access Object).
+Architektonicky se aplikace dělí na čtyři klíčové vrstvy (*Separation of Concerns*):
+- **Prezentační vrstva (Jinja2 Templates, Bootstrap 5, SVG/Pyvis):** Zajišťuje frontendové zobrazení, interaktivní vykreslování grafů se sjednocenými popisky uzlů (`A (0)`, `B (1)`…), krokování algoritmů a tiskové pracovní listy písemek (`@media print`).
+- **Aplikační a řídicí vrstva (FastAPI — `main.py`):** Obsluhuje HTTP požadavky (HTML stránky i REST API endpointy) a validuje uživatelské vstupy pomocí modelů knihovny **Pydantic** (`models.py`).
+- **Doménová a výpočetní vrstva (`generator.py`, `solver.py`, `scenarios.py`, `grader.py`, `exporter.py`):** Zapouzdřuje matematickou logiku generování grafů s didaktickými garancemi, výpočet 10 grafových algoritmů, generování kontextových slovních úloh a tabulek pro písemky, sémantickou validaci víceznačných studentských řešení a obousměrný převod formátu `.tg`.
+- **Datová vrstva (SQLite DAO — `database.py`):** Zajišťuje trvalé uložení struktury grafů, pozic uzlů, štítků (`tag`) a výsledků algoritmů pomocí návrhového vzoru DAO (*Data Access Object*).
 
-### Adresářová struktura (Best Practice)
+### Adresářová struktura
 ```text
-aplikace/
+aplikace_ver_2/
 ├── app/
 │   ├── main.py            # Vstupní bod, FastAPI routery a definice endpointů
 │   ├── database.py        # Logika pro ukládání a načítání z SQLite DB (DAO)
-│   ├── generator.py       # Obálka nad NetworkX pro generování typů grafů
+│   ├── generator.py       # Generátor grafů a didaktických garancí nad NetworkX
 │   ├── models.py          # Pydantic modely definující vstupní/výstupní schémata
 │   ├── solver.py          # Implementace a extrakce kroků grafových algoritmů
-│   └── templates/         # HTML šablony (Jinja2)
-├── tests/                 # Adresář pro automatizované testy (pytest)
-│   ├── conftest.py        # Konfigurace testovacího prostředí
-│   ├── test_api.py        # Testy FastAPI endpointů
-│   ├── test_generator.py  # Testy generátoru a limitních stavů grafů
-│   └── test_solver.py     # Testy správnosti výpočtů algoritmů
-├── data/                  # Persistentní složka pro SQLite databázi (graphs.db)
-├── static/
-│   └── graphs/            # Zde se ukládají vygenerované PNG vizualizace
-├── docker-compose.yml     # Konfigurace kontejnerů a volumes
+│   ├── scenarios.py       # Didaktický generátor slovních úloh a tiskových písemek
+│   ├── grader.py          # Sémantický validátor studentských odpovědí (Grader v2)
+│   ├── exporter.py        # Export a import formátu .tg, CSV, JSON, ZIP
+│   ├── templates/         # HTML šablony (Jinja2: index, teaching, exam, generate, result, export, visualize, documentation)
+│   └── static/            # CSS styly, JS SVG editor/krokování a vygenerované PNG/HTML grafy
+├── tests/                 # Automatizované testy (Pytest — 66 testů)
+│   ├── conftest.py        # Konfigurace testovacího prostředí (TESTING=1)
+│   ├── test_api.py        # Integrační testy FastAPI endpointů, výuky a písemek
+│   ├── test_generator.py  # Unit testy generátoru a didaktických garancí
+│   ├── test_solver.py     # Unit testy správnosti algoritmů a validátoru
+│   └── test_independent_verification.py  # Nezávislé ověření (hrubá síla, vlastní Edmonds–Karp)
+├── docs/                  # Technická dokumentace a podklady pro text diplomové práce
+├── docker-compose.yml     # Konfigurace kontejnerů a persistentních volumes
 ├── Dockerfile             # Definice Docker image
 └── requirements.txt       # Závislosti aplikace
 ```
 
 ## 2. Návrh Databáze (SQLite)
-Byla použita jednoduchá, ale efektivní struktura využívající 3 tabulek pro uložení dat a metadata vygenerovaných grafů.
+Je použita hybridní relační struktura tří tabulek pro uložení normalizované topologie grafu i strukturovaných JSON výstupů algoritmů:
 
-1. **`graphs` (Hlavní tabulka pro metadata)**
-   - `id` (VARCHAR): Primární klíč, unikátní UUID grafu.
-   - `config` (JSON): Vstupní parametry (GraphConfig) použité pro generování.
-   - `properties` (JSON): Vypočtené statistiky grafu (souvislost, hustota, atd.).
-   - `algorithms` (JSON): Výsledky algoritmů (MST, nejkratší cesty, atd.).
-   - `png_path`, `interactive_path` (VARCHAR): Cesty k vygenerovaným vizualizacím.
-   - `seed` (INTEGER): Seed použitý k vygenerování (pro reprodukovatelnost).
-   - `created_at` (DATETIME): Časové razítko vytvoření.
+1. **`graphs` (Hlavní tabulka pro metadata a výsledky)**
+   - `graph_id` (TEXT, PK): Unikátní UUID identifikátor grafu.
+   - `config_json` (TEXT/JSON): Vstupní parametry (`GraphConfig`) včetně didaktických voleb (`unique_weights`, `allow_negative_edge`, `force_bridge`).
+   - `properties_json` (TEXT/JSON): Vypočtené invarianty grafu (souvislost, hustota, průměr, stupňová posloupnost).
+   - `algorithms_json` (TEXT/JSON): Výsledky algoritmů (Dijkstra, Bellman-Ford, Kruskal MST, Max-Flow/Min-Cut, barvení, Euler, Hamilton, komponenty/mosty, topologické řazení).
+   - `adjacency_matrix` (TEXT/JSON): Matice sousednosti.
+   - `png_path`, `interactive_path` (TEXT): Cesty k vygenerovaným vizualizacím.
+   - `seed` (INTEGER): Semínko pseudonáhodného generátoru pro plnou reprodukovatelnost.
+   - `is_directed`, `is_weighted`, `node_count`, `edge_count` (INTEGER): Denormalizované sloupce pro rychlé indexované dotazy.
+   - `created_at` (TEXT): Časové razítko vytvoření.
+   - `tag` (TEXT): Uživatelský štítek/kategorie (např. `Cvičení 3`, `Písemka A`) pro rychlé filtrování a hromadný export.
 
 2. **`graph_edges` (Uložení samotné struktury grafu)**
-   - Ukládá jednotlivé hrany grafu.
-   - `id` (INTEGER): Primární klíč.
-   - `graph_id` (VARCHAR): Cizí klíč do tabulky `graphs`.
-   - `source` (INTEGER), `target` (INTEGER): Zdrojový a cílový uzel.
-   - `weight` (FLOAT): Váha hrany.
+   - `id` (INTEGER, PK): Primární klíč.
+   - `graph_id` (TEXT, FK): Cizí klíč do tabulky `graphs` (`ON DELETE CASCADE`).
+   - `source_node` (INTEGER), `target_node` (INTEGER): Zdrojový a cílový vrchol hrany.
+   - `weight` (REAL): Váha hrany (`NULL` pro neohodnocené grafy).
+   - `edge_order` (INTEGER): Pořadí hrany.
 
 3. **`graph_positions` (Uložení manuálních souřadnic uzlů)**
-   - `id` (INTEGER): Primární klíč.
-   - `graph_id` (VARCHAR): Cizí klíč.
-   - `positions` (JSON): Objekt mapující ID uzlu na souřadnice `{ "0": {"x": 10, "y": 20} }`.
+   - `id` (INTEGER, PK): Primární klíč.
+   - `graph_id` (TEXT, FK): Cizí klíč do tabulky `graphs` (`ON DELETE CASCADE`).
+   - `node_id` (INTEGER): Index vrcholu.
+   - `x` (REAL), `y` (REAL): Souřadnice uzlu uložené z interaktivního SVG editoru.
 
-## 3. Logika API (Endpoints)
+## 3. Přehled stránek a REST API Endpointů
 
-### Stránky (GET)
-- `/`: Domovská stránka obsahující přehled, nedávno generované grafy a obecné statistiky.
-- `/generate`: Formulář pro generování nových grafů (umožňuje batchování, omezení vah, vlastností).
-- `/result/{graph_id}`: Zobrazí konkrétní vygenerovaný graf (grafika, vlastnosti, kroky algoritmů).
-- `/export`: Stránka pro správu vygenerovaných grafů a hromadný export do UIS systému.
-- `/docs-algorithms`: Výuková dokumentace ke konkrétním algoritmům, jak fungují, a jak je systém počítá.
+### Webové stránky (GET)
+- `/`: Domovská stránka s rozcestníkem a celkovou statistikou uložených grafů.
+- `/teaching`: **Výuka — demo**; didaktické předvolby na jedno kliknutí pro okamžité vygenerování typových grafů a písemek.
+- `/exam/{graph_id}`: **Tiskový pracovní list písemky** se slovním zadáním, předtištěnou tabulkou pro studenta a přepínatelným autorským řešením pro vyučujícího (podporuje query parametry `scenario`, `source`, `mid`, `target`).
+- `/generate`: Pokročilý formulář pro dávkové generování grafů a import existujícího `.tg` souboru.
+- `/result/{graph_id}`: Detail vygenerovaného grafu, matice sousednosti, seznam hran, výsledky všech algoritmů, export `.tg` a interaktivní validátor odpovědí studenta.
+- `/visualize/{graph_id}`: Interaktivní přehrávač kroků algoritmů (BFS, DFS, Dijkstra, Bellman-Ford, Kruskal, Borůvka) a editor pozic uzlů.
+- `/export`: Správa vygenerovaných grafů, filtrování podle štítků (`?tag=...`) a hromadný export (`.tg` ZIP, CSV, JSON).
+- `/docs-algorithms`: Výuková dokumentace jednotlivých grafových algoritmů s pseudokódy a rozborem složitosti.
 
-### Funkční endpointy
-- **`POST /generate`**
-  - **Účel**: Generuje novou sadu grafů na základě odeslaného formuláře (`BatchConfig`).
-  - **Logika**: 
-    1. Validuje vstupy. 
-    2. Vygeneruje NetworkX objekty pomocí `generator.py`. 
-    3. Vyrenderuje PNG. 
-    4. Provede výpočty vlastností a kroků algoritmů. 
-    5. Uloží do SQLite a přesměruje uživatele na `/result` nebo zpět na export.
-- **`POST /export/download`**
-  - **Účel**: Umožňuje stažení celé databáze v předem daném formátu (`csv`, `json`).
-- **`GET /api/graph/{graph_id}`**
-  - **Účel**: Asynchronní REST endpoint vrací JSON objekt reprezentující graf. Zahrnuje nodes, edges a metadata, vhodný pro Javascriptové knihovny na frontendu (např. D3.js nebo Pyvis).
-- **`POST /api/graph/{graph_id}/delete`**
-  - **Účel**: Smaže konkrétní graf z databáze (včetně kaskádového smazání hran).
-- **`POST /api/graph/{graph_id}/save_png`**
-  - **Účel**: Přijímá Base64 string z Canvasu a ukládá ho na server jako PNG soubor grafu.
+### Funkční a REST API endpointy
+- **`POST /teaching/generate`**: Vygeneruje graf podle zvoleného didaktického presetu (`dijkstra`, `dijkstra_stopover`, `kruskal`, `bellman_ford`, `bridges`, `toposort`, `max_flow`), přiřadí štítek a přesměruje přímo na pracovní list písemky `/exam/{id}`.
+- **`POST /generate`**: Vygeneruje dávku grafů podle podrobné konfigurace (`GraphConfig`) včetně didaktických přepínačů.
+- **`POST /import-tg`**: Zparsuje vložený `.tg` text, zrekonstruuje graf, vykreslí vizualizace, spočítá všechny algoritmy a uloží graf do SQLite.
+- **`POST /export/download`**: Vrátí hromadný export vybraných grafů (volitelně filtrovaných podle `tag`) ve formátu CSV, JSON nebo ZIP archivu `.tg` souborů.
+- **`GET /api/graph/{graph_id}`**: Vrátí kompletní JSON reprezentaci grafu včetně pozic uzlů.
+- **`GET /api/graph/{graph_id}/tg`**: Vrátí nebo stáhne `.tg` definici grafu (s písmenným označením vrcholů `A, B, C...`).
+- **`GET /api/graph/{graph_id}/shortest_path`**: Dynamicky přepočítá nejkratší cestu mezi libovolnými uzly `source` a `target`.
+- **`POST /api/graph/{graph_id}/grade`**: Sémantický validátor studentských odpovědí (Grader v2) pro minimální kostru, nejkratší cestu a topologické uspořádání.
+- **`POST /api/graph/{graph_id}/tag`**: Aktualizuje uživatelský štítek (`tag`) daného grafu.
+- **`POST /api/graph/{graph_id}/save_png`**: Uloží upravené souřadnice uzlů z prohlížeče do tabulky `graph_positions` a přepíše statický PNG náhled grafu.
+- **`POST /api/graph/{graph_id}/delete`** a **`POST /api/graphs/delete-all`**: Smaže jeden nebo všechny grafy včetně souvisejících statických souborů.
+- **`GET /api/visualize/{graph_id}/{algorithm}`**: Vrátí pole diskrétních kroků zvoleného algoritmu pro animaci na SVG plátně.
 
 ## 4. Automatizované testy (Test Suite)
-Kritické procesy a výpočty jsou pokryty automatizovanými testy postavenými na knihovně `pytest`. Tím je zaručeno, že modifikace kódu do budoucna nerozbijí funkčnost. Testy běží v izolovaném prostředí, kde proměnná `TESTING=1` zaručí, že testy pracují s dočasnou databází v paměti (`test_graphs.db`), nikoliv s ostrou produkční DB.
+Kritické procesy a výpočty jsou pokryty sadou **66 automatizovaných testů** postavených na knihovně `pytest`. Při nastavení proměnné prostředí `TESTING=1` (v `tests/conftest.py`) běží testy nad izolovanou dočasnou databází `test_graphs.db`.
 
 ### Rozdělení testů
-1. **`test_solver.py` (39 funkčních testů)**
-   - Testuje čistou matematickou logiku nad iterátory NetworkX.
-   - Kontroluje spolehlivost algoritmů: Dijkstra, Kruskal, Borůvka, Bipartitnost, Topologické třídění atd.
-   - Ověřuje vlastnosti grafů, hledání stupňů uzlů a kontrolu, zda cesty dávají matematický smysl.
-
+1. **`test_solver.py`**
+   - Testuje matematickou správnost všech algoritmů (Dijkstra, Bellman-Ford, Kruskal, Borůvka, Ford-Fulkerson Max-Flow/Min-Cut, Welsh-Powell barvení, Eulerovské a Hamiltonovské cesty, komponenty a mosty, topologické řazení, bipartitnost) a sémantický validátor `grader.py`.
 2. **`test_generator.py`**
-   - Validuje výstupy generátoru. Kontroluje, že vygenerovaný graf (Node Count, Edge Count, Váhy) striktně odpovídá tomu, o co si uživatel ve formuláři požádal.
-   - Zahrnuje limity okrajových případů a reprodukovatelnost grafu se stejným Seed číslem.
-
+   - Ověřuje dodržení počtu vrcholů, hran, souvislosti (včetně dosažitelnosti cíle u orientovaných grafů), acykličnosti (DAG/strom), bipartitnosti, reprodukovatelnosti pomocí `seed` a didaktických garancí (`unique_weights`, `allow_negative_edge`, `force_bridge`).
 3. **`test_api.py`**
-   - End-to-end (E2E) testování HTTP odpovědí aplikací.
-   - Klientská simulace pomocí `FastAPI.TestClient`.
-   - Zajišťuje správný chod routování, vracení HTML/JSON podle endpointů a HTTP kódů.
+   - Integrační end-to-end (E2E) testy všech stránek, REST endpointů, obousměrného `.tg` importu/exportu, štítkování (`tag`) a všech 7 scénářů výukových písemek (`/teaching/generate` a `/exam/{id}`).
+4. **`test_independent_verification.py`**
+   - Referenční hodnoty nepocházejí z NetworkX: úplné prohledání cest a koster, vlastní Edmondsův–Karpův algoritmus, kontrola vlastností výsledku. Ověřuje také garance generátoru, všech sedm scénářů písemek a uznání všech správných minimálních koster validátorem.
