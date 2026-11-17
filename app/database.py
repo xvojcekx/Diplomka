@@ -107,7 +107,8 @@ def init_db():
                 is_weighted      INTEGER NOT NULL DEFAULT 1,  -- BOOLEAN (0/1)
                 node_count       INTEGER NOT NULL,        -- Denormalizováno pro rychlé filtrování
                 edge_count       INTEGER NOT NULL,        -- Denormalizováno pro rychlé filtrování
-                created_at       TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+                created_at       TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+                tag              TEXT DEFAULT ''          -- Volitelný štítek / kategorie pro vyučujícího
             );
 
             -- ===============================================================
@@ -151,6 +152,11 @@ def init_db():
 
             CREATE INDEX IF NOT EXISTS idx_positions_graph ON graph_positions(graph_id);
         """)
+        # Bezpečná migrace pro stávající databáze bez sloupce tag
+        try:
+            conn.execute("ALTER TABLE graphs ADD COLUMN tag TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass  # Sloupec již existuje
 
 
 # ============================================================================
@@ -176,8 +182,8 @@ def save_graph(graph_data: dict) -> None:
             INSERT OR REPLACE INTO graphs
                 (graph_id, config_json, properties_json, algorithms_json,
                  adjacency_matrix, png_path, interactive_path, seed,
-                 is_directed, is_weighted, node_count, edge_count, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 is_directed, is_weighted, node_count, edge_count, created_at, tag)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             graph_data["graph_id"],
             json.dumps(config, ensure_ascii=False),
@@ -192,6 +198,7 @@ def save_graph(graph_data: dict) -> None:
             properties.get("node_count", 0),
             properties.get("edge_count", 0),
             graph_data.get("created_at", datetime.now().strftime("%d.%m.%Y %H:%M:%S")),
+            str(graph_data.get("tag", "") or "").strip(),
         ))
 
         # Hrany — nejdřív smaž staré, pak vlož nové
@@ -243,6 +250,9 @@ def get_graph(graph_id: str) -> Optional[dict]:
         positions = load_positions(graph_id, conn=conn)
 
         # Sestav dict kompatibilní s graphs_store
+        row_keys = row.keys()
+        tag = row["tag"] if "tag" in row_keys and row["tag"] else ""
+
         result = {
             "graph_id": row["graph_id"],
             "config": json.loads(row["config_json"]),
@@ -254,6 +264,7 @@ def get_graph(graph_id: str) -> Optional[dict]:
             "interactive_path": row["interactive_path"],
             "seed": row["seed"],
             "created_at": row["created_at"],
+            "tag": tag,
         }
 
         if positions:
@@ -262,17 +273,22 @@ def get_graph(graph_id: str) -> Optional[dict]:
         return result
 
 
-def get_all_graphs() -> dict:
+def get_all_graphs(tag: Optional[str] = None) -> dict:
     """
-    Načte všechny grafy z databáze.
+    Načte všechny grafy z databáze (s volitelným filtrem podle štítku/tagu).
 
     Returns:
         dict[graph_id -> graph_data] — stejná struktura jako graphs_store
     """
     with get_db() as conn:
-        rows = conn.execute(
-            "SELECT graph_id FROM graphs ORDER BY created_at DESC"
-        ).fetchall()
+        if tag:
+            rows = conn.execute(
+                "SELECT graph_id FROM graphs WHERE tag = ? ORDER BY created_at DESC", (tag,)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT graph_id FROM graphs ORDER BY created_at DESC"
+            ).fetchall()
 
     # Načti jednotlivé grafy (každý potřebuje svůj JOIN)
     result = {}
@@ -281,6 +297,26 @@ def get_all_graphs() -> dict:
         if graph_data:
             result[graph_data["graph_id"]] = graph_data
     return result
+
+
+def update_graph_tag(graph_id: str, tag: str) -> bool:
+    """Aktualizuje štítek (tag) grafu."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            "UPDATE graphs SET tag = ? WHERE graph_id = ?",
+            (tag.strip(), graph_id)
+        )
+        return cursor.rowcount > 0
+
+
+def get_all_tags() -> List[str]:
+    """Vrátí seznam všech unikátních použitých štítků."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT tag FROM graphs WHERE tag IS NOT NULL AND tag != '' ORDER BY tag ASC"
+        ).fetchall()
+        return [r["tag"] for r in rows]
+
 
 
 def delete_graph(graph_id: str) -> bool:

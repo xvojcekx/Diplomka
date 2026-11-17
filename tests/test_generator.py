@@ -187,3 +187,34 @@ class TestEdgeCases:
         seed = result["seed"]
         assert G.number_of_nodes() == 5
         assert G.number_of_edges() == 10
+
+    def test_didactic_options(self):
+        from generator import generate_graph
+        from models import GraphConfig
+
+        # 1. Test unique weights (jednoznačné váhy pro MST)
+        cfg_unique = GraphConfig(node_count=6, edge_count=8, directed=False, weighted=True,
+                                 unique_weights=True, weight_min=1, weight_max=10, seed=42)
+        res_unique = generate_graph(cfg_unique)
+        weights = [data["weight"] for _, _, data in res_unique["graph"].edges(data=True)]
+        assert len(weights) == len(set(weights)), "Váhy hran musí být navzájem unikátní!"
+
+        # 2. Test force_bridge (garantovaný most a artikulace)
+        cfg_bridge = GraphConfig(node_count=8, edge_count=10, directed=False, weighted=True,
+                                 connected=True, force_bridge=True, seed=42)
+        res_bridge = generate_graph(cfg_bridge)
+        G_bridge = res_bridge["graph"]
+        bridges = list(nx.bridges(G_bridge))
+        articulations = list(nx.articulation_points(G_bridge))
+        assert len(bridges) >= 1, "Graf musí obsahovat alespoň jeden most!"
+        assert len(articulations) >= 1, "Graf musí obsahovat alespoň jednu artikulaci!"
+
+        # 3. Test allow_negative_edge (bez záporného cyklu)
+        cfg_neg = GraphConfig(node_count=6, edge_count=9, directed=True, weighted=True,
+                              connected=True, allow_negative_edge=True, seed=42)
+        res_neg = generate_graph(cfg_neg)
+        G_neg = res_neg["graph"]
+        neg_weights = [d["weight"] for _, _, d in G_neg.edges(data=True) if d["weight"] < 0]
+        assert len(neg_weights) >= 1, "Graf musí obsahovat zápornou hranu pro Bellman-Ford!"
+        assert not nx.negative_edge_cycle(G_neg), "Graf nesmí obsahovat záporný cyklus!"
+

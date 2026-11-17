@@ -34,7 +34,9 @@ def generate_graph(config: GraphConfig) -> dict:
     _validate_config(config)
 
     # Generování grafu podle typu
-    if config.bipartite:
+    if getattr(config, 'force_bridge', False) and n >= 4 and not config.directed:
+        G = _generate_with_bridge(n, m, rng, np_rng)
+    elif config.bipartite:
         G = _generate_bipartite(n, m, config.directed, rng, np_rng)
     elif config.acyclic and config.directed:
         G = _generate_dag(n, m, config.connected, rng, np_rng)
@@ -51,9 +53,38 @@ def generate_graph(config: GraphConfig) -> dict:
         w_max = getattr(config, 'weight_max', 10)
         if w_min > w_max:
             w_min, w_max = w_max, w_min
-            
-        for u, v in G.edges():
-            G[u][v]["weight"] = rng.randint(w_min, w_max)
+
+        num_edges = G.number_of_edges()
+        if getattr(config, 'unique_weights', False) and num_edges > 0:
+            if (w_max - w_min + 1) < num_edges:
+                w_max = w_min + num_edges - 1
+            available_weights = list(range(w_min, w_max + 1))
+            rng.shuffle(available_weights)
+            for idx, (u, v) in enumerate(G.edges()):
+                G[u][v]["weight"] = available_weights[idx]
+        else:
+            for u, v in G.edges():
+                G[u][v]["weight"] = rng.randint(w_min, w_max)
+
+        # Didaktická past: alespoň 1 záporná hrana pro Bellman-Ford bez záporného cyklu
+        if getattr(config, 'allow_negative_edge', False) and G.is_directed() and num_edges > 1:
+            edges = list(G.edges())
+            # Upřednostni hrany, které neleží na orientovaném cyklu (zaručeně nevytvoří záporný cyklus)
+            dag_like_edges = [
+                (u, v) for (u, v) in edges
+                if not nx.has_path(G, v, u)
+            ]
+            rng.shuffle(dag_like_edges)
+            rng.shuffle(edges)
+            candidates = dag_like_edges + [e for e in edges if e not in dag_like_edges]
+            for u, v in candidates:
+                orig_w = G[u][v].get("weight", 1)
+                neg_w = -rng.randint(1, max(3, min(5, abs(orig_w))))
+                G[u][v]["weight"] = neg_w
+                if nx.negative_edge_cycle(G):
+                    G[u][v]["weight"] = orig_w
+                else:
+                    break
 
     # Sestav výstup
     adjacency_matrix = _get_adjacency_matrix(G, config.weighted)
@@ -135,15 +166,36 @@ def _generate_connected(n: int, m: int, directed: bool, rng: random.Random,
                         np_rng: np.random.RandomState) -> nx.Graph:
     """Generuje souvislý graf — začne spanning tree, přidá zbylé hrany."""
     if directed:
-        # Pro orientovaný: vytvoř neorientovaný connected, pak orientuj
-        G_undir = _generate_connected(n, m, False, rng, np_rng)
+        # Pro orientovaný graf: vytvoř orientovanou kostru (arborescenci) z uzlu 0,
+        # aby byl každý uzel (zejména cílový n-1) dosažitelný ze startu 0.
         G = nx.DiGraph()
         G.add_nodes_from(range(n))
-        for u, v in G_undir.edges():
-            if rng.random() < 0.5:
-                G.add_edge(u, v)
-            else:
-                G.add_edge(v, u)
+        if n >= 2:
+            middle = list(range(1, n - 1))
+            rng.shuffle(middle)
+            order = [0] + middle + [n - 1]
+            # Kostra směrem od 0 ke všem ostatním uzlům
+            for i in range(1, n):
+                parent_idx = rng.randint(0, i - 1)
+                G.add_edge(order[parent_idx], order[i])
+
+            # Zaruč, že i cílový uzel n-1 má alespoň jednoho předchůdce z vnitřních uzlů
+            remaining_target = m - G.number_of_edges()
+            if remaining_target > 0:
+                # Upřednostni dopředné hrany v topologickém pořadí, aby vzniklo více cest 0 -> n-1
+                forward_possible = []
+                back_possible = []
+                for idx_u, u in enumerate(order):
+                    for idx_v, v in enumerate(order):
+                        if u != v and not G.has_edge(u, v):
+                            if idx_u < idx_v:
+                                forward_possible.append((u, v))
+                            else:
+                                back_possible.append((u, v))
+                rng.shuffle(forward_possible)
+                rng.shuffle(back_possible)
+                combined = forward_possible + back_possible
+                G.add_edges_from(combined[:remaining_target])
         return G
 
     # Spanning tree jako základ
@@ -248,6 +300,55 @@ def _generate_bipartite(n: int, m: int, directed: bool, rng: random.Random,
 
     rng.shuffle(possible)
     G.add_edges_from(possible[:m])
+
+    return G
+
+
+def _generate_with_bridge(n: int, m: int, rng: random.Random,
+                          np_rng: np.random.RandomState) -> nx.Graph:
+    """
+    Generuje souvislý neorientovaný graf se zaručeným mostem a artikulacemi.
+    Rozdělí uzly na dvě disjunktní skupiny a propojí je jedinou hranou.
+    """
+    n_a = n // 2
+    n_b = n - n_a
+    nodes_a = list(range(n_a))
+    nodes_b = list(range(n_a, n))
+
+    G = nx.Graph()
+    G.add_nodes_from(range(n))
+
+    # Spanning tree v clusteru A
+    rng.shuffle(nodes_a)
+    for i in range(1, n_a):
+        parent = rng.randint(0, i - 1)
+        G.add_edge(nodes_a[i], nodes_a[parent])
+
+    # Spanning tree v clusteru B
+    rng.shuffle(nodes_b)
+    for i in range(1, n_b):
+        parent = rng.randint(0, i - 1)
+        G.add_edge(nodes_b[i], nodes_b[parent])
+
+    # Jediný most mezi clustery
+    bridge_u = nodes_a[0]
+    bridge_v = nodes_b[0]
+    G.add_edge(bridge_u, bridge_v)
+
+    # Zbylé hrany přidáváme pouze uvnitř clusterů A a B
+    remaining = m - G.number_of_edges()
+    if remaining > 0:
+        internal_edges = []
+        for i in range(n_a):
+            for j in range(i + 1, n_a):
+                if not G.has_edge(nodes_a[i], nodes_a[j]):
+                    internal_edges.append((nodes_a[i], nodes_a[j]))
+        for i in range(n_b):
+            for j in range(i + 1, n_b):
+                if not G.has_edge(nodes_b[i], nodes_b[j]):
+                    internal_edges.append((nodes_b[i], nodes_b[j]))
+        rng.shuffle(internal_edges)
+        G.add_edges_from(internal_edges[:remaining])
 
     return G
 

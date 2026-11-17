@@ -18,6 +18,10 @@ class GraphConfig(BaseModel):
     acyclic: bool = Field(default=False, description="Acyklický (DAG / strom)")
     bipartite: bool = Field(default=False, description="Bipartitní")
     seed: Optional[int] = Field(default=None, description="Seed pro reprodukovatelnost")
+    unique_weights: bool = Field(default=False, description="Zaručit unikátní váhy hran")
+    allow_negative_edge: bool = Field(default=False, description="Povolit zápornou hranu bez záporného cyklu")
+    force_bridge: bool = Field(default=False, description="Vynutit existenci mostu a artikulace")
+    tag: Optional[str] = Field(default="", description="Štítek / označení sady pro výuku")
 
 
 class BatchConfig(BaseModel):
