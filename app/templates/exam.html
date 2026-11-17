@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}Písemka — {{ scenario.title }}{% endblock %}
+
+{% block head %}
+<style>
+@media print {
+    /* Skryj hlavičku webu, navbar, tlačítka a patičku při tisku */
+    nav, footer, .no-print, .btn, .alert {
+        display: none !important;
+    }
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 11pt;
+    }
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .exam-sheet {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+    .page-break {
+        page-break-before: always;
+    }
+}
+
+.exam-sheet {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 2.5rem;
+}
+
+.student-header-box {
+    border-bottom: 2px solid #000000;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.dotted-line {
+    border-bottom: 1px dotted #6c757d;
+    display: inline-block;
+    min-width: 180px;
+    height: 1.2rem;
+}
+
+.work-grid {
+    border: 1px dashed #adb5bd;
+    background: repeating-linear-gradient(
+        0deg,
+        #ffffff,
+        #ffffff 24px,
+        #f1f3f5 25px
+    );
+    min-height: 160px;
+    border-radius: 0.25rem;
+    margin-top: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Horní lišta s akcemi (skryta při tisku) -->
+<div class="no-print bg-white p-3 rounded shadow-sm border mb-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <a href="/teaching" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-easel me-1"></i>Výuka — demo
+            </a>
+            <a href="/result/{{ graph.graph_id }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-diagram-3 me-1"></i>Detail grafu
+            </a>
+            <a href="/visualize/{{ graph.graph_id }}" class="btn btn-outline-secondary btn-sm" title="Přesunout uzly nebo krokovat algoritmus na projektoru">
+                <i class="bi bi-arrows-move me-1"></i>Upravit rozložení / Krokovat
+            </a>
+            <span class="badge bg-primary">{{ scenario.algorithm_badge }}</span>
+            {% if graph.tag %}
+            <span class="badge bg-secondary"><i class="bi bi-tag me-1"></i>{{ graph.tag }}</span>
+            {% endif %}
+        </div>
+
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <!-- Rychlé přegenerování nové varianty stejného scénáře -->
+            <form method="POST" action="/teaching/generate" class="d-inline">
+                <input type="hidden" name="preset_type" value="{{ scenario.scenario_type }}">
+                <input type="hidden" name="tag" value="{{ graph.tag or '' }}">
+                {% if graph.config.unique_weights %}
+                <input type="hidden" name="unique_weights" value="true">
+                {% endif %}
+                <button type="submit" class="btn btn-outline-primary btn-sm" title="Vygenerovat nový náhodný graf se stejným typem úlohy">
+                    <i class="bi bi-shuffle me-1"></i>Nová varianta grafu
+                </button>
+            </form>
+
+            <!-- Přepínač režimu -->
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-primary active" id="btnModeStudent" onclick="setMode('student')">
+                    <i class="bi bi-person me-1"></i>Zadání pro studenta
+                </button>
+                <button type="button" class="btn btn-outline-success" id="btnModeTeacher" onclick="setMode('teacher')">
+                    <i class="bi bi-key me-1"></i>Autorské řešení
+                </button>
+            </div>
+
+            <button class="btn btn-primary btn-sm" onclick="printExam()">
+                <i class="bi bi-printer me-1"></i>Vytisknout / PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Konfigurace scénáře a uzlů nad existujícím grafem -->
+    <form method="GET" action="/exam/{{ graph.graph_id }}" class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label small text-muted mb-1">Typ slovního zadání nad tímto grafem</label>
+            <select name="scenario" id="scenarioSelect" class="form-select form-select-sm" onchange="toggleNodeSelectors()">
+                <option value="dijkstra" {% if scenario.scenario_type == 'dijkstra' %}selected{% endif %}>Nejkratší cesta (Dijkstra — logistika)</option>
+                <option value="dijkstra_stopover" {% if scenario.scenario_type == 'dijkstra_stopover' %}selected{% endif %}>Trasa s povinnou mezizastávkou (bez opakování hran)</option>
+                <option value="kruskal" {% if scenario.scenario_type == 'kruskal' %}selected{% endif %}>Minimální kostra sítě (Kruskal — optická síť)</option>
+                <option value="bellman_ford" {% if scenario.scenario_type == 'bellman_ford' %}selected{% endif %}>Záporné ohodnocení (Bellman-Ford — finance)</option>
+                <option value="bridges" {% if scenario.scenario_type == 'bridges' %}selected{% endif %}>Kritické spoje a uzly (Mosty a artikulace)</option>
+                <option value="toposort" {% if scenario.scenario_type == 'toposort' %}selected{% endif %}>Harmonogram projektu (Topologické řazení DAG)</option>
+                <option value="max_flow" {% if scenario.scenario_type == 'max_flow' %}selected{% endif %}>Maximální tok a minimální řez (Produktovod)</option>
+            </select>
+        </div>
+        <div class="col-md-2" id="sourceCol">
+            <label class="form-label small text-muted mb-1">Výchozí uzel (Start)</label>
+            <select name="source" class="form-select form-select-sm">
+                {% for n in node_options %}
+                <option value="{{ n.idx }}" {% if scenario.source_node == n.idx %}selected{% endif %}>{{ n.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2" id="midCol" style="display: none;">
+            <label class="form-label small text-muted mb-1">Mezizastávka</label>
+            <select name="mid" class="form-select form-select-sm">
+                {% for n in node_options %}
+                <option value="{{ n.idx }}" {% if scenario.mid_node == n.idx %}selected{% endif %}>{{ n.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2" id="targetCol">
+            <label class="form-label small text-muted mb-1">Cílový uzel (Cíl)</label>
+            <select name="target" class="form-select form-select-sm">
+                {% for n in node_options %}
+                <option value="{{ n.idx }}" {% if scenario.target_node == n.idx %}selected{% endif %}>{{ n.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-secondary btn-sm w-100">
+                <i class="bi bi-arrow-repeat me-1"></i>Přepočítat zadání
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Samotný tiskový list písemky -->
+<div class="exam-sheet shadow-sm mx-auto" style="max-width: 850px;">
+    <!-- Záhlaví testu -->
+    <div class="student-header-box">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h4 class="fw-bold mb-1 text-dark">Písemná zkouška — Teorie Grafů</h4>
+                <div class="text-muted small">Mendelova univerzita v Brně • Provozně ekonomická fakulta</div>
+            </div>
+            <div class="text-end font-monospace small text-muted">
+                <div>Varianta: <strong>{{ graph.graph_id[:8] }}</strong></div>
+                {% if graph.seed is not none %}<div>Seed: {{ graph.seed }}</div>{% endif %}
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+            <div class="col-6">
+                <span class="small fw-semibold text-secondary">Jméno a příjmení:</span>
+                <span class="dotted-line w-75"></span>
+            </div>
+            <div class="col-3">
+                <span class="small fw-semibold text-secondary">Skupina:</span>
+                <span class="dotted-line w-50"></span>
+            </div>
+            <div class="col-3 text-end">
+                <span class="small fw-semibold text-secondary">Datum:</span>
+                <span class="dotted-line w-50"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Název a příběhové slovní zadání -->
+    <div class="mb-3">
+        <h5 class="fw-bold text-primary mb-2">{{ scenario.title }}</h5>
+        <div class="p-3 bg-light rounded border text-dark" style="line-height: 1.6;">
+            {{ scenario.story | safe }}
+        </div>
+    </div>
+
+    <!-- Vyobrazení grafu -->
+    <div class="text-center my-3">
+        <img src="{{ graph.png_path }}" alt="Graf zadání" class="img-fluid rounded border" style="max-height: 300px; object-fit: contain; background: #ffffff;">
+        <div class="text-muted small mt-1">Obrázek: Zkoumaná síť (uzly jsou označeny písmenem i číselným indexem)</div>
+    </div>
+
+    <!-- Otázky a úkoly -->
+    <div class="mb-3">
+        <h6 class="fw-bold text-dark text-uppercase small tracking-wide mb-2">Úkoly a otázky:</h6>
+        <ol class="ps-3 mb-0" style="line-height: 1.65;">
+            {% for q in scenario.questions %}
+            <li class="mb-1">{{ q | safe }}</li>
+            {% endfor %}
+        </ol>
+    </div>
+
+    <!-- Prostor pro studentské řešení (v režimu student) -->
+    <div id="studentWorkSection" class="mb-3">
+        {% if scenario.student_table_html %}
+        <div class="mb-2">
+            {{ scenario.student_table_html | safe }}
+        </div>
+        {% endif %}
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small fw-bold text-muted text-uppercase">Místo pro postup výpočtu a slovní odpověď:</span>
+            <span class="small text-muted">Hodnocení: _____ / 10 b.</span>
+        </div>
+        <div class="work-grid"></div>
+    </div>
+
+    <!-- Autorské řešení pro učitele (v režimu teacher) -->
+    <div id="teacherSolutionSection" class="p-3 rounded border border-success bg-success bg-opacity-10 mb-3" style="display: none;">
+        <div class="d-flex align-items-center mb-2">
+            <i class="bi bi-key-fill text-success fs-5 me-2"></i>
+            <h6 class="fw-bold text-success mb-0">Autorské řešení a klíč správných odpovědí (pro vyučujícího)</h6>
+        </div>
+        <div class="small text-dark" style="line-height: 1.6;">
+            {{ scenario.teacher_solution | safe }}
+        </div>
+    </div>
+
+    <div class="border-top pt-2 mt-3 text-center text-muted small" style="font-size: 0.75rem;">
+        Předmět Teorie Grafů • Generováno systémem automatické přípravy úloh PEF MENDELU • ID: {{ graph.graph_id }}
+    </div>
+</div>
+
+<script>
+let currentMode = 'student';
+
+function setMode(mode) {
+    currentMode = mode;
+    const studentSec = document.getElementById('studentWorkSection');
+    const teacherSec = document.getElementById('teacherSolutionSection');
+    const btnStudent = document.getElementById('btnModeStudent');
+    const btnTeacher = document.getElementById('btnModeTeacher');
+
+    if (mode === 'teacher') {
+        studentSec.style.display = 'none';
+        teacherSec.style.display = 'block';
+        btnStudent.classList.remove('active');
+        btnTeacher.classList.add('active');
+    } else {
+        studentSec.style.display = 'block';
+        teacherSec.style.display = 'none';
+        btnStudent.classList.add('active');
+        btnTeacher.classList.remove('active');
+    }
+}
+
+function toggleNodeSelectors() {
+    const sc = document.getElementById('scenarioSelect').value;
+    const sourceCol = document.getElementById('sourceCol');
+    const midCol = document.getElementById('midCol');
+    const targetCol = document.getElementById('targetCol');
+
+    const needsEndpoints = ['dijkstra', 'dijkstra_stopover', 'bellman_ford', 'max_flow'].includes(sc);
+    sourceCol.style.display = needsEndpoints ? 'block' : 'none';
+    targetCol.style.display = needsEndpoints ? 'block' : 'none';
+    midCol.style.display = (sc === 'dijkstra_stopover') ? 'block' : 'none';
+}
+
+function printExam() {
+    window.print();
+}
+
+document.addEventListener('DOMContentLoaded', toggleNodeSelectors);
+</script>
+{% endblock %}

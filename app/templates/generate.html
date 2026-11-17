@@ -90,6 +90,17 @@
                                name="seed" placeholder="Pro reprodukovatelnost">
                         <div class="form-text">Stejný seed = stejné grafy</div>
                     </div>
+
+                    <!-- Štítek / Tag -->
+                    <div class="mb-3">
+                        <label for="tag" class="form-label fw-medium">
+                            Štítek / Označení sady <span class="text-muted">(volitelné)</span>
+                        </label>
+                        <input type="text" class="form-control" id="tag"
+                               name="tag" placeholder="Např. Cvičení 2, Písemka A, Domácí úkol...">
+                        <div class="form-text">Slouží pro filtrování a organizaci v exportu</div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -141,6 +152,27 @@
                         <input class="form-check-input" type="checkbox" id="bipartite" name="bipartite">
                         <label class="form-check-label" for="bipartite">
                             <i class="bi bi-distribute-vertical me-1"></i>Bipartitní
+                        </label>
+                    </div>
+
+                    <hr class="my-3">
+                    <div class="small fw-bold text-muted text-uppercase mb-2">Didaktické garance (pro písemky)</div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="unique_weights" name="unique_weights">
+                        <label class="form-check-label small" for="unique_weights">
+                            Unikátní váhy hran (zaručeně jednoznačná minimální kostra)
+                        </label>
+                    </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="allow_negative_edge" name="allow_negative_edge">
+                        <label class="form-check-label small" for="allow_negative_edge">
+                            Vložit zápornou hranu bez záporného cyklu (pro Bellman-Ford)
+                        </label>
+                    </div>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="force_bridge" name="force_bridge">
+                        <label class="form-check-label small" for="force_bridge">
+                            Garantovat alespoň 1 most a artikulaci (pro neorientované)
                         </label>
                     </div>
                 </div>

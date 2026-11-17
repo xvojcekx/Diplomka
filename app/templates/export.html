@@ -33,37 +33,48 @@
 <div class="card bg-white shadow-sm border-light-subtle mb-4">
     <div class="card-body">
         <div class="row align-items-center g-3">
-            <div class="col-lg-4">
+            <div class="col-lg-3">
                 <h5 class="mb-1">
                     <i class="bi bi-collection me-2"></i>
-                    Celkem grafů: <span class="badge bg-primary fs-6">{{ graphs | length }}</span>
+                    Celkem: <span class="badge bg-primary fs-6">{{ graphs | length }}</span>
                 </h5>
-                <p class="text-muted small mb-0">Hromadný export nebo správa všech zadání</p>
+                <p class="text-muted small mb-0">Hromadný export zadání</p>
             </div>
-            <div class="col-lg-3">
+            <div class="col-lg-2">
                 <select class="form-select form-select-sm" id="filterType">
-                    <option value="all">Filtr: Všechny grafy</option>
+                    <option value="all">Typ: Všechny</option>
                     <option value="directed">Pouze orientované</option>
                     <option value="undirected">Pouze neorientované</option>
                     <option value="weighted">Pouze ohodnocené</option>
                     <option value="connected">Pouze souvislé</option>
                 </select>
             </div>
-            <div class="col-lg-5 text-lg-end">
-                <form method="POST" action="/export/download" class="d-inline me-2">
+            <div class="col-lg-3">
+                <select class="form-select form-select-sm" id="filterTag" onchange="window.location.href = this.value ? '/export?tag=' + encodeURIComponent(this.value) : '/export'">
+                    <option value="">Štítek: Všechny kategorie</option>
+                    {% for t in tags %}
+                    <option value="{{ t }}" {% if selected_tag == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <form method="POST" action="/export/download" class="d-inline me-1">
+                    {% if selected_tag %}
+                    <input type="hidden" name="tag" value="{{ selected_tag }}">
+                    {% endif %}
                     <select class="form-select form-select-sm w-auto d-inline-block me-1" name="format">
-                        <option value="csv">CSV (Výsledky pro UIS)</option>
-                        <option value="tg">.TG (ZIP archiv zadání)</option>
-                        <option value="json">JSON (Kompletní data)</option>
+                        <option value="csv">CSV (UIS)</option>
+                        <option value="tg">.TG (ZIP)</option>
+                        <option value="json">JSON</option>
                     </select>
                     <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="bi bi-download me-1"></i>Stáhnout vše
+                        <i class="bi bi-download me-1"></i>Stáhnout
                     </button>
                 </form>
                 <form method="POST" action="/api/graphs/delete-all" class="d-inline"
                       onsubmit="return confirm('Opravdu chcete smazat všechna vygenerovaná zadání?');">
-                    <button type="submit" class="btn btn-outline-danger btn-sm">
-                        <i class="bi bi-trash3 me-1"></i>Smazat vše
+                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Smazat všechna zadání">
+                        <i class="bi bi-trash3"></i>
                     </button>
                 </form>
             </div>
@@ -81,9 +92,16 @@
         <div class="card bg-white shadow-sm border-light-subtle h-100 graph-card">
             <div class="card-body d-flex flex-column">
                 <div class="d-flex align-items-start justify-content-between mb-2">
-                    <h6 class="card-title mb-0 font-monospace small text-primary fw-bold">
-                        {{ id[:8] }}…
-                    </h6>
+                    <div>
+                        <h6 class="card-title mb-0 font-monospace small text-primary fw-bold">
+                            {{ id[:8] }}…
+                        </h6>
+                        {% if data.get('tag') %}
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle mt-1" style="font-size: 0.7rem;">
+                            <i class="bi bi-tag-fill me-1"></i>{{ data.tag }}
+                        </span>
+                        {% endif %}
+                    </div>
                     <form method="POST" action="/api/graph/{{ id }}/delete" onsubmit="return confirm('Opravdu chcete tento graf smazat?');" class="m-0 p-0">
                         <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Smazat graf">
                             <i class="bi bi-trash"></i> Smazat
@@ -129,9 +147,12 @@
                 </div>
                 {% endif %}
 
-                <div class="mt-auto d-flex gap-2">
+                <div class="mt-auto d-flex flex-wrap gap-1">
+                    <a href="/exam/{{ id }}" class="btn btn-outline-info btn-sm" title="Vytisknout písemku se zadáním">
+                        <i class="bi bi-file-earmark-text me-1"></i>Písemka
+                    </a>
                     <a href="/result/{{ id }}" class="btn btn-outline-primary btn-sm flex-grow-1">
-                        <i class="bi bi-eye me-1"></i>Zobrazit detail
+                        <i class="bi bi-eye me-1"></i>Detail
                     </a>
                     <a href="/api/graph/{{ id }}/tg?download=true" class="btn btn-outline-success btn-sm" title="Stáhnout .tg zadání">
                         <i class="bi bi-file-earmark-code me-1"></i>.tg

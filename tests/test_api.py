@@ -202,4 +202,64 @@ class TestExportEndpoints:
         assert res.status_code == 200
         assert res.json()["status"] == "deleted_all"
 
+    def test_teaching_page_and_generate_preset(self, client):
+        # 1. GET /teaching
+        t_page = client.get("/teaching")
+        assert t_page.status_code == 200
+        assert "Výuka — demo" in t_page.text
+        assert "Trasa s povinnou mezizastávkou" in t_page.text
+
+        # 2. POST /teaching/generate (Dijkstra s mezizastávkou)
+        post_res = client.post("/teaching/generate", data={
+            "preset_type": "dijkstra_stopover",
+            "tag": "Písemka 1A"
+        }, follow_redirects=False)
+        assert post_res.status_code == 303
+        location = post_res.headers.get("location")
+        assert "/exam/" in location
+        assert "scenario=dijkstra_stopover" in location
+        graph_id = location.split("/exam/")[1].split("?")[0]
+
+        # 3. GET /exam/{graph_id}
+        exam_res = client.get(f"/exam/{graph_id}?scenario=dijkstra_stopover")
+        assert exam_res.status_code == 200
+        assert "Písemná zkouška" in exam_res.text
+        assert "mezizastávk" in exam_res.text.lower()
+        assert "Autorské řešení" in exam_res.text
+
+        # 4. Tag update via API
+        tag_res = client.post(f"/api/graph/{graph_id}/tag", json={"tag": "Zkouška B"}, headers={"accept": "application/json"})
+        assert tag_res.status_code == 200
+        assert tag_res.json()["tag"] == "Zkouška B"
+
+        # 5. Export page with tag filter
+        exp_res = client.get("/export?tag=Zkouška%20B")
+        assert exp_res.status_code == 200
+        assert "Zkouška B" in exp_res.text
+
+        # 6. Test all 7 preset types in /teaching/generate and /exam/{id}
+        all_presets = [
+            "dijkstra",
+            "dijkstra_stopover",
+            "kruskal",
+            "bellman_ford",
+            "bridges",
+            "toposort",
+            "max_flow",
+        ]
+        for preset in all_presets:
+            r_gen = client.post(
+                "/teaching/generate",
+                data={"preset_type": preset, "tag": f"Test-{preset}", "unique_weights": "true"},
+                follow_redirects=False,
+            )
+            assert r_gen.status_code == 303, f"Preset {preset} failed to redirect"
+            loc = r_gen.headers["location"]
+            r_exam = client.get(loc)
+            assert r_exam.status_code == 200, f"Exam page failed for preset {preset}"
+            assert "Autorské řešení" in r_exam.text
+            assert "table" in r_exam.text
+
+
+
 

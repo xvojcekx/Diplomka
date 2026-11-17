@@ -24,9 +24,16 @@
         bg: '#ffffff',
     };
 
-    const NODE_RADIUS = 22;
+    const NODE_RADIUS = 24;
     const EDGE_WIDTH_DEFAULT = 2.5;
     const EDGE_WIDTH_HIGHLIGHT = 5;
+
+    function nodeToLetter(idx) {
+        const n = parseInt(idx, 10);
+        if (isNaN(n)) return String(idx);
+        if (n < 26) return String.fromCharCode(65 + n);
+        return String.fromCharCode(65 + Math.floor(n / 26) - 1) + String.fromCharCode(65 + (n % 26));
+    }
 
     // ========================================================================
     // STATE
@@ -392,11 +399,11 @@
             g.appendChild(circle);
 
             const label = createSVGElement('text', {
-                x: pos.x, y: pos.y + 5,
-                'text-anchor': 'middle', 'font-size': '14', 'font-weight': 'bold',
+                x: pos.x, y: pos.y + 4,
+                'text-anchor': 'middle', 'font-size': '11', 'font-weight': 'bold',
                 fill: COLORS.text, 'pointer-events': 'none',
             });
-            label.textContent = node;
+            label.textContent = `${nodeToLetter(node)} (${node})`;
             g.appendChild(label);
 
             nodeGroup.appendChild(g);

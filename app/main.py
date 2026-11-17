@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from pyvis.network import Network
 
+from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse, PlainTextResponse
@@ -48,8 +49,10 @@ from grader import validate_student_answer
 from exporter import export_to_csv, export_to_json, export_to_tg, parse_tg
 from database import (
     init_db, save_graph, get_graph, get_all_graphs,
-    delete_graph, delete_all_graphs, count_graphs, save_positions, load_positions
+    delete_graph, delete_all_graphs, count_graphs, save_positions, load_positions,
+    update_graph_tag, get_all_tags
 )
+from scenarios import build_scenario_for_graph, node_to_letter
 
 import io
 
@@ -133,19 +136,21 @@ def render_graph_png(G: nx.Graph, graph_id: str) -> str:
 
     # Nakresli uzly
     nx.draw_networkx_nodes(G, pos, ax=ax, node_color=node_colors,
-                           node_size=600, edgecolors="#4338ca", linewidths=2)
+                           node_size=950, edgecolors="#4338ca", linewidths=2)
 
     # Nakresli hrany
     edge_color = "#94a3b8"
     if G.is_directed():
         nx.draw_networkx_edges(G, pos, ax=ax, edge_color=edge_color,
                                arrows=True, arrowsize=20, width=2,
+                               node_size=950,
                                connectionstyle="arc3,rad=0.1")
     else:
         nx.draw_networkx_edges(G, pos, ax=ax, edge_color=edge_color, width=2)
 
-    # Popisky uzlů
-    nx.draw_networkx_labels(G, pos, ax=ax, font_size=12, font_weight="bold",
+    # Popisky uzlů: sjednocené označení A (0), B (1), ...
+    node_labels = {n: f"{node_to_letter(n)} ({n})" for n in G.nodes()}
+    nx.draw_networkx_labels(G, pos, labels=node_labels, ax=ax, font_size=9, font_weight="bold",
                             font_color="white")
 
     # Váhy na hranách
@@ -179,14 +184,14 @@ def render_graph_interactive(G: nx.Graph, graph_id: str) -> str:
         font_color="white",
     )
 
-    # Přidej uzly
+    # Přidej uzly se sjednoceným popiskem A (0), B (1), ...
     for node in G.nodes():
         net.add_node(
             int(node),
-            label=str(node),
+            label=f"{node_to_letter(node)} ({node})",
             color="#6366f1",
-            size=25,
-            font={"size": 16, "color": "white"},
+            size=26,
+            font={"size": 14, "color": "white"},
         )
 
     # Přidej hrany
@@ -270,6 +275,10 @@ async def generate_post(
     algo_euler: bool = Form(True),
     algo_hamilton: bool = Form(True),
     algo_components: bool = Form(True),
+    unique_weights: bool = Form(False),
+    allow_negative_edge: bool = Form(False),
+    force_bridge: bool = Form(False),
+    tag: str = Form(""),
 ):
     """Zpracuje formulář, vygeneruje grafy."""
     base_seed = int(seed) if seed.strip() else None
@@ -314,6 +323,10 @@ async def generate_post(
             acyclic=acyclic,
             bipartite=bipartite,
             seed=base_seed + i if base_seed is not None else None,
+            unique_weights=unique_weights,
+            allow_negative_edge=allow_negative_edge,
+            force_bridge=force_bridge,
+            tag=tag.strip(),
         )
 
         try:
@@ -376,6 +389,7 @@ async def generate_post(
                 "interactive_path": interactive_path,
                 "seed": result["seed"],
                 "created_at": datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
+                "tag": tag.strip(),
             }
             save_graph(graph_record)
 
@@ -489,18 +503,261 @@ async def result_page(request: Request, graph_id: str):
     })
 
 
+# ============================================================================
+# VÝUKA — DEMO & DIDAKTICKÉ PŘEDVOLBY
+# ============================================================================
+
+@app.get("/teaching", response_class=HTMLResponse)
+async def teaching_page(request: Request):
+    """Stránka s předpřipravenými didaktickými scénáři pro výuku."""
+    return templates.TemplateResponse(request, "teaching.html", {
+        "tags": get_all_tags(),
+    })
+
+
+@app.post("/teaching/generate")
+async def teaching_generate_post(
+    request: Request,
+    preset_type: str = Form("dijkstra"),
+    tag: str = Form(""),
+    unique_weights: Optional[str] = Form(None),
+):
+    """Vygeneruje graf a slovní zadání podle didaktického presetu."""
+    seed = random.randint(1000, 999999)
+    tag_clean = tag.strip() if tag.strip() else f"Výuka - {preset_type}"
+
+    if preset_type == "dijkstra":
+        config = GraphConfig(
+            node_count=7,
+            edge_count=10,
+            directed=False,
+            weighted=True,
+            weight_min=2,
+            weight_max=14,
+            connected=True,
+            acyclic=False,
+            bipartite=False,
+            seed=seed,
+            unique_weights=False,
+            tag=tag_clean,
+        )
+    elif preset_type == "dijkstra_stopover":
+        config = GraphConfig(
+            node_count=8,
+            edge_count=12,
+            directed=False,
+            weighted=True,
+            weight_min=2,
+            weight_max=15,
+            connected=True,
+            acyclic=False,
+            bipartite=False,
+            seed=seed,
+            unique_weights=False,
+            tag=tag_clean,
+        )
+    elif preset_type == "kruskal":
+        uw = bool(unique_weights and unique_weights.lower() in ("on", "true", "1"))
+        config = GraphConfig(
+            node_count=7,
+            edge_count=11,
+            directed=False,
+            weighted=True,
+            weight_min=1,
+            weight_max=16,
+            connected=True,
+            acyclic=False,
+            bipartite=False,
+            seed=seed,
+            unique_weights=uw,
+            tag=tag_clean,
+        )
+    elif preset_type == "bellman_ford":
+        config = GraphConfig(
+            node_count=6,
+            edge_count=9,
+            directed=True,
+            weighted=True,
+            weight_min=1,
+            weight_max=12,
+            connected=True,
+            acyclic=False,
+            bipartite=False,
+            seed=seed,
+            allow_negative_edge=True,
+            tag=tag_clean,
+        )
+    elif preset_type == "bridges":
+        config = GraphConfig(
+            node_count=8,
+            edge_count=10,
+            directed=False,
+            weighted=True,
+            weight_min=1,
+            weight_max=10,
+            connected=True,
+            acyclic=False,
+            bipartite=False,
+            seed=seed,
+            force_bridge=True,
+            tag=tag_clean,
+        )
+    elif preset_type == "toposort":
+        config = GraphConfig(
+            node_count=7,
+            edge_count=9,
+            directed=True,
+            weighted=False,
+            connected=True,
+            acyclic=True,
+            bipartite=False,
+            seed=seed,
+            tag=tag_clean,
+        )
+    elif preset_type == "max_flow":
+        config = GraphConfig(
+            node_count=6,
+            edge_count=9,
+            directed=True,
+            weighted=True,
+            weight_min=2,
+            weight_max=15,
+            connected=True,
+            acyclic=False,
+            bipartite=False,
+            seed=seed,
+            tag=tag_clean,
+        )
+    else:
+        config = GraphConfig(
+            node_count=6,
+            edge_count=8,
+            directed=False,
+            weighted=True,
+            weight_min=1,
+            weight_max=10,
+            connected=True,
+            seed=seed,
+            tag=tag_clean,
+        )
+
+    result = generate_graph(config)
+    G = result["graph"]
+    graph_id = str(uuid.uuid4())
+
+    png_path = render_graph_png(G, graph_id)
+    interactive_path = render_graph_interactive(G, graph_id)
+    props = graph_properties(G)
+
+    algos = {}
+    nodes = sorted(G.nodes())
+    if len(nodes) >= 2:
+        algos["shortest_path"] = shortest_path_dijkstra(G, nodes[0], nodes[-1])
+        algos["bellman_ford"] = bellman_ford(G, nodes[0], nodes[-1])
+        algos["max_flow"] = ford_fulkerson_max_flow(G, nodes[0], nodes[-1])
+    if not config.directed:
+        algos["mst"] = minimum_spanning_tree(G)
+    if config.directed and config.acyclic:
+        algos["topological_sort"] = topological_sort(G)
+    algos["coloring"] = graph_coloring(G)
+    algos["euler"] = euler_path(G)
+    if len(nodes) <= 20:
+        algos["hamilton"] = hamilton_path(G)
+    algos["components"] = components_and_bridges(G)
+
+    graph_record = {
+        "graph_id": graph_id,
+        "config": config.model_dump(),
+        "properties": props,
+        "algorithms": algos,
+        "adjacency_matrix": result["adjacency_matrix"],
+        "edge_list": result["edge_list"],
+        "png_path": png_path,
+        "interactive_path": interactive_path,
+        "seed": result["seed"],
+        "created_at": datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
+        "tag": tag_clean,
+    }
+    save_graph(graph_record)
+
+    return RedirectResponse(url=f"/exam/{graph_id}?scenario={preset_type}", status_code=303)
+
+
+@app.get("/exam/{graph_id}", response_class=HTMLResponse)
+async def exam_page(
+    request: Request,
+    graph_id: str,
+    scenario: str = "auto",
+    source: Optional[int] = None,
+    target: Optional[int] = None,
+    mid: Optional[int] = None,
+):
+    """Zobrazí tiskový pracovní list písemky a autorské řešení pro vyučujícího."""
+    graph_data = get_graph(graph_id)
+    if not graph_data:
+        return templates.TemplateResponse(request, "index.html", {
+            "error": "Graf nebyl nalezen.",
+            "total_graphs": count_graphs(),
+        })
+
+    scenario_data = build_scenario_for_graph(
+        graph_data,
+        scenario_type=scenario,
+        source=source,
+        target=target,
+        mid=mid,
+    )
+    node_count = graph_data.get("properties", {}).get("node_count", 0)
+    node_options = [{"idx": i, "label": f"{node_to_letter(i)} ({i})"} for i in range(node_count)]
+
+    return templates.TemplateResponse(request, "exam.html", {
+        "graph": graph_data,
+        "scenario": scenario_data,
+        "node_options": node_options,
+    })
+
+
+@app.post("/api/graph/{graph_id}/tag")
+async def api_graph_update_tag(request: Request, graph_id: str):
+    """Aktualizuje štítek/tag daného grafu."""
+    if not get_graph(graph_id):
+        return JSONResponse({"error": "Graf nenalezen"}, status_code=404)
+
+    try:
+        data = await request.json()
+        new_tag = str(data.get("tag", "")).strip()
+    except Exception:
+        form = await request.form()
+        new_tag = str(form.get("tag", "")).strip()
+
+    update_graph_tag(graph_id, new_tag)
+
+    if request.headers.get("accept") == "application/json":
+        return JSONResponse({"status": "success", "tag": new_tag})
+
+    return RedirectResponse(url=f"/result/{graph_id}", status_code=303)
+
+
+# ============================================================================
+# EXPORT A SPRÁVA GRAFŮ
+# ============================================================================
+
 @app.get("/export", response_class=HTMLResponse)
-async def export_page(request: Request):
-    """Přehled exportovaných zadání."""
+async def export_page(request: Request, tag: Optional[str] = None):
+    """Přehled exportovaných zadání s možností filtrování podle štítků."""
+    tag_clean = tag.strip() if tag and tag.strip() else None
     return templates.TemplateResponse(request, "export.html", {
-        "graphs": get_all_graphs(),
+        "graphs": get_all_graphs(tag=tag_clean),
+        "tags": get_all_tags(),
+        "selected_tag": tag_clean or "",
     })
 
 
 @app.post("/export/download")
-async def export_download(request: Request, format: str = Form("csv")):
-    """Stáhne CSV/JSON/.TG ZIP pro UIS."""
-    graphs_list = list(get_all_graphs().values())
+async def export_download(request: Request, format: str = Form("csv"), tag: Optional[str] = Form(None)):
+    """Stáhne CSV/JSON/.TG ZIP pro UIS (volitelně vyfiltrované dle štítku)."""
+    tag_clean = tag.strip() if tag and tag.strip() else None
+    graphs_list = list(get_all_graphs(tag=tag_clean).values())
 
     if format == "json":
         content = export_to_json(graphs_list)
@@ -533,6 +790,7 @@ async def export_download(request: Request, format: str = Form("csv")):
             media_type=media_type,
             headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
+
 
 
 @app.get("/api/graph/{graph_id}/tg")

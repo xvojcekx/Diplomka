@@ -374,6 +374,319 @@
         </div>
     </div>
 
+    <!-- Bellman-Ford -->
+    <div class="accordion-item bg-white shadow-sm border-light-subtle">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white shadow-sm text-dark" type="button"
+                data-bs-toggle="collapse" data-bs-target="#bellman_ford">
+                <i class="bi bi-graph-down-arrow me-2 text-primary"></i>
+                Bellmanův–Fordův algoritmus — Nejkratší cesta se zápornými vahami
+            </button>
+        </h2>
+        <div id="bellman_ford" class="accordion-collapse collapse" data-bs-parent="#algoAccordion">
+            <div class="accordion-body">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <h5>Princip</h5>
+                        <p>
+                            Bellmanův–Fordův algoritmus hledá nejkratší cesty z jednoho výchozího vrcholu do všech
+                            ostatních vrcholů i v grafech, které obsahují <strong>záporně ohodnocené hrany</strong>.
+                            Na rozdíl od hladového Dijkstrova algoritmu postupuje metodou dynamického programování —
+                            opakovaně relaxuje všechny hrany grafu.
+                        </p>
+
+                        <h5>Postup krok za krokem</h5>
+                        <ol>
+                            <li><strong>Inicializuj</strong> — vzdálenost zdroje <code>dist[zdroj] = 0</code>, ostatních vrcholů <code>∞</code></li>
+                            <li><strong>Proveď |V| − 1 fází</strong> (iterací):
+                                <ul>
+                                    <li>V každé fázi projdi všechny hrany <code>(u, v, w) ∈ E</code></li>
+                                    <li>Pokud <code>dist[u] + w &lt; dist[v]</code> → proveď <span class="badge bg-success">relaxaci</span> <code>dist[v] = dist[u] + w</code> a ulož předchůdce <code>prev[v] = u</code></li>
+                                </ul>
+                            </li>
+                            <li><strong>Kontrola záporného cyklu (|V|. fáze):</strong> Pokud lze ještě v <em>|V|</em>-tém průchodu některou hranu zkrátit, graf obsahuje dosažitelný <strong>záporný cyklus</strong> a nejkratší cesta není konečná.</li>
+                        </ol>
+
+                        <h5>Časová složitost</h5>
+                        <p><code>O(V · E)</code> — pomalejší než Dijkstra, ale univerzální pro záporné váhy.</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card bg-white shadow-sm border-light-subtle">
+                            <div class="card-header border-light-subtle"><strong>Pseudokód</strong></div>
+                            <div class="card-body">
+                                {% raw %}
+                                <pre class="text-dark mb-0"><code>BELLMAN_FORD(G, zdroj):
+  dist[v] = ∞ pro ∀v ∈ V
+  dist[zdroj] = 0
+
+  pro i = 1 do |V| - 1:
+    pro každou (u, v, w) ∈ E:
+      pokud dist[u] + w < dist[v]:
+        dist[v] = dist[u] + w
+        prev[v] = u
+
+  pro každou (u, v, w) ∈ E:
+    pokud dist[u] + w < dist[v]:
+      chyba "Záporný cyklus"
+
+  vrať dist[], prev[]</code></pre>{% endraw %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ford-Fulkerson / Edmonds-Karp -->
+    <div class="accordion-item bg-white shadow-sm border-light-subtle">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white shadow-sm text-dark" type="button"
+                data-bs-toggle="collapse" data-bs-target="#max_flow">
+                <i class="bi bi-water me-2 text-primary"></i>
+                Fordův–Fulkersonův (Edmondsův–Karpův) algoritmus — Maximální tok a minimální řez
+            </button>
+        </h2>
+        <div id="max_flow" class="accordion-collapse collapse" data-bs-parent="#algoAccordion">
+            <div class="accordion-body">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <h5>Princip</h5>
+                        <p>
+                            Řeší úlohu maximálního toku v dopravní síti ze zdroje <em>s</em> do stoku <em>t</em>,
+                            kde nezáporné váhy orientovaných hran představují <strong>kapacity</strong> <code>c(u, v)</code>.
+                            Edmondsova–Karpova varianta hledá zlepšující (augmentační) cesty v reziduální síti pomocí
+                            prohledávání do šířky (BFS).
+                        </p>
+
+                        <h5>Postup krok za krokem</h5>
+                        <ol>
+                            <li><strong>Nulový výchozí tok</strong> — na všech hranách nastav <code>f(u, v) = 0</code></li>
+                            <li><strong>Dokud existuje zlepšující cesta</strong> ze zdroje <em>s</em> do stoku <em>t</em> v reziduální síti <code>G_f</code>:
+                                <ul>
+                                    <li>Najdi nejkratší zlepšující cestu pomocí BFS</li>
+                                    <li>Urči její <strong>úzké hrdlo</strong> (minimum z reziduálních kapacit na cestě): <code>Δ = min c_f(e)</code></li>
+                                    <li><span class="badge bg-success">Zvyš tok</span> podél cesty o hodnotu <code>Δ</code> a aktualizuj reziduální kapacity</li>
+                                </ul>
+                            </li>
+                            <li><strong>Minimální s–t řez:</strong> Množina vrcholů <em>S</em> dosažitelných ze zdroje v konečné reziduální síti definuje minimální řez <code>(S, V \ S)</code>. Podle <em>Věty o maximálním toku a minimálním řezu</em> se součet kapacit hran vedoucích z <em>S</em> do <em>T</em> přesně rovná velikosti maximálního toku.</li>
+                        </ol>
+
+                        <h5>Časová složitost</h5>
+                        <p><code>O(V · E²)</code> — pro Edmondsovu–Karpovu implementaci pomocí BFS.</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card bg-white shadow-sm border-light-subtle">
+                            <div class="card-header border-light-subtle"><strong>Pseudokód</strong></div>
+                            <div class="card-body">
+                                {% raw %}
+                                <pre class="text-dark mb-0"><code>EDMONDS_KARP(G, s, t):
+  f(u, v) = 0 pro ∀(u, v) ∈ E
+  max_tok = 0
+
+  dokud cesta = BFS_REZIDUALNI(G_f, s, t):
+    delta = min { c_f(u, v) : (u,v) ∈ cesta }
+    pro každou (u, v) ∈ cesta:
+      f(u, v) += delta
+      f(v, u) -= delta
+    max_tok += delta
+
+  S = dosažitelné vrcholy z s v G_f
+  T = V \ S
+  vrať max_tok, řez (S, T)</code></pre>{% endraw %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Topologické řazení (Kahn) -->
+    <div class="accordion-item bg-white shadow-sm border-light-subtle">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white shadow-sm text-dark" type="button"
+                data-bs-toggle="collapse" data-bs-target="#toposort">
+                <i class="bi bi-sort-numeric-down me-2 text-primary"></i>
+                Kahnův algoritmus — Topologické uspořádání (DAG)
+            </button>
+        </h2>
+        <div id="toposort" class="accordion-collapse collapse" data-bs-parent="#algoAccordion">
+            <div class="accordion-body">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <h5>Princip</h5>
+                        <p>
+                            Topologické uspořádání orientovaného acyklického grafu (DAG) je lineární pořadí všech vrcholů takové,
+                            že pro každou orientovanou hranu <code>u → v</code> leží vrchol <em>u</em> v pořadí před vrcholem <em>v</em>.
+                            V praxi modeluje harmonogram závislých činností či prerekvizit.
+                        </p>
+
+                        <h5>Postup krok za krokem</h5>
+                        <ol>
+                            <li><strong>Spočítej vstupní stupně</strong> <code>deg⁻(v)</code> pro všechny vrcholy grafu</li>
+                            <li><strong>Vlož do fronty</strong> všechny vrcholy s nulovým vstupním stupněm <code>deg⁻(v) = 0</code> (činnosti bez prerekvizit)</li>
+                            <li><strong>Opakuj</strong> dokud fronta není prázdná:
+                                <ul>
+                                    <li>Vyjmi vrchol <em>u</em> z fronty a přidej jej na konec topologického pořadí</li>
+                                    <li>Pro každého následovníka <em>v</em> po hraně <code>u → v</code> sniž <code>deg⁻(v)</code> o 1; klesne-li na 0, vlož <em>v</em> do fronty</li>
+                                </ul>
+                            </li>
+                            <li>Pokud výstup neobsahuje všech <code>|V|</code> vrcholů, graf obsahuje orientovaný cyklus a topologické uspořádání neexistuje.</li>
+                        </ol>
+
+                        <h5>Časová složitost</h5>
+                        <p><code>O(V + E)</code></p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card bg-white shadow-sm border-light-subtle">
+                            <div class="card-header border-light-subtle"><strong>Pseudokód</strong></div>
+                            <div class="card-body">
+                                {% raw %}
+                                <pre class="text-dark mb-0"><code>KAHN_TOPOSORT(G):
+  in_deg[v] = vstupní stupeň v
+  Q = { v ∈ V : in_deg[v] == 0 }
+  pořadí = []
+
+  dokud Q není prázdná:
+    u = Q.vyber()
+    pořadí.přidej(u)
+    pro (u, v) ∈ hrany(u):
+      in_deg[v] -= 1
+      pokud in_deg[v] == 0:
+        Q.vlož(v)
+
+  pokud |pořadí| < |V|:
+    chyba "Graf obsahuje cyklus"
+  vrať pořadí</code></pre>{% endraw %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mosty, artikulace a komponenty souvislosti -->
+    <div class="accordion-item bg-white shadow-sm border-light-subtle">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white shadow-sm text-dark" type="button"
+                data-bs-toggle="collapse" data-bs-target="#bridges">
+                <i class="bi bi-diagram-2 me-2 text-primary"></i>
+                Komponenty souvislosti, mosty a artikulace (Tarjanův algoritmus)
+            </button>
+        </h2>
+        <div id="bridges" class="accordion-collapse collapse" data-bs-parent="#algoAccordion">
+            <div class="accordion-body">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <h5>Princip</h5>
+                        <p>
+                            Strukturální analýza zranitelnosti sítě odhaluje kritické prvky, jejichž výpadek způsobí rozpad grafu:
+                        </p>
+                        <ul>
+                            <li><strong>Most (bridge):</strong> Hrana <code>e ∈ E</code>, jejíž odebrání zvýší počet souvislých komponent grafu.</li>
+                            <li><strong>Artikulace (cut vertex):</strong> Vrchol <code>v ∈ V</code>, jehož odebrání spolu s incidentními hranami zvýší počet souvislých komponent.</li>
+                            <li><strong>Silně souvislé komponenty (SCC):</strong> V orientovaném grafu maximální podmnožiny vrcholů, mezi nimiž existuje orientovaná cesta v obou směrech.</li>
+                        </ul>
+
+                        <h5>Princip detekce (DFS časy <code>disc</code> a <code>low</code>)</h5>
+                        <p>
+                            Při průchodu do hloubky (DFS) se pro každý vrchol <em>u</em> zaznamenává čas objevení <code>disc[u]</code>
+                            a nejmenší čas <code>low[u]</code> dosažitelný z podstromu vrcholu <em>u</em> pomocí nejvýše jedné zpětné hrany.
+                            Platí-li pro stromovou hranu <code>(u, v)</code> nerovnost <code>low[v] &gt; disc[u]</code>, neexistuje z podstromu <em>v</em>
+                            žádná zpětná hrana nad <em>u</em> a hrana <code>(u, v)</code> je <strong>mostem</strong>.
+                        </p>
+
+                        <h5>Časová složitost</h5>
+                        <p><code>O(V + E)</code> — jediný průchod DFS.</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card bg-white shadow-sm border-light-subtle">
+                            <div class="card-header border-light-subtle"><strong>Pseudokód (Hledání mostů)</strong></div>
+                            <div class="card-body">
+                                {% raw %}
+                                <pre class="text-dark mb-0"><code>DFS_MOSTY(u, rodič):
+  disc[u] = low[u] = ++čas
+  pro v ∈ sousedé(u):
+    pokud v == rodič: pokračuj
+    pokud v nebyl navštíven:
+      DFS_MOSTY(v, u)
+      low[u] = min(low[u], low[v])
+      pokud low[v] > disc[u]:
+        MOST(u, v)
+    jinak:
+      low[u] = min(low[u], disc[v])</code></pre>{% endraw %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barvení, Euler a Hamilton -->
+    <div class="accordion-item bg-white shadow-sm border-light-subtle">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white shadow-sm text-dark" type="button"
+                data-bs-toggle="collapse" data-bs-target="#coloring_euler">
+                <i class="bi bi-palette2 me-2 text-primary"></i>
+                Barvení grafu (Welsh–Powell), Eulerovské a Hamiltonovské tahy
+            </button>
+        </h2>
+        <div id="coloring_euler" class="accordion-collapse collapse" data-bs-parent="#algoAccordion">
+            <div class="accordion-body">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <h5>1. Barvení vrcholů (Welshův–Powellův algoritmus)</h5>
+                        <p>
+                            Přiřazuje vrcholům barvy tak, aby žádné dva sousední vrcholy neměly stejnou barvu.
+                            Heuristika seřadí vrcholy sestupně podle stupně <code>deg(v)</code> a postupně každému
+                            vrcholu přiřadí nejmenší dostupnou barvu, kterou nemá žádný jeho soused. Poskytuje horní odhad
+                            chromatického čísla <code>χ(G)</code>.
+                        </p>
+
+                        <h5>2. Eulerovský tah a kružnice (Hierholzerův algoritmus)</h5>
+                        <p>
+                            <strong>Eulerovský tah</strong> projde každou hranu grafu právě jednou. V souvislém neorientovaném grafu
+                            existuje tehdy a jen tehdy, je-li počet vrcholů lichého stupně roven <strong>0</strong> (Eulerovská kružnice — uzavřený tah)
+                            nebo <strong>2</strong> (otevřený Eulerovský tah začínající v jednom a končící ve druhém vrcholu lichého stupně).
+                        </p>
+
+                        <h5>3. Hamiltonovská cesta a kružnice</h5>
+                        <p>
+                            <strong>Hamiltonovská cesta</strong> navštíví každý vrchol grafu právě jednou. Na rozdíl od Eulerovských
+                            úloh jde o <strong>NP-úplný problém</strong>, který aplikace pro výukové grafy řeší exaktním prohledáváním s návratem (backtracking).
+                        </p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card bg-white shadow-sm border-light-subtle">
+                            <div class="card-header border-light-subtle"><strong>Přehled podmínek a složitostí</strong></div>
+                            <div class="card-body">
+                                {% raw %}
+                                <pre class="text-dark mb-0"><code>WELSH_POWELL(G):
+  seřaď vrcholy sestupně dle deg(v)
+  pro každý uzel u:
+    barva[u] = min { c ≥ 1 :
+      ∀v ∈ sousedé(u): barva[v] ≠ c }
+
+EULERŮV_TAH(G):
+  liché = { v ∈ V : deg(v) mod 2 == 1 }
+  kružnice ⇔ |liché| == 0
+  tah      ⇔ |liché| == 2
+  Složitost: O(V + E)
+
+HAMILTONOVA_CESTA(G):
+  Backtracking přes permutace V
+  Složitost: O(V!) v nejhorším případě</code></pre>{% endraw %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- Legenda barev -->

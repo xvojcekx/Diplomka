@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Výuka — demo{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-mortarboard-fill text-primary fs-2 me-3"></i>
+        <div>
+            <h1 class="h3 mb-0">Výuka — demo: Předpřipravené úlohy a písemky</h1>
+            <p class="text-muted mb-0 small">Rychlý výběr didaktických scénářů pro cvičení a zkoušky se slovním zadáním a autorským řešením</p>
+        </div>
+    </div>
+    <a href="/generate" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-sliders me-1"></i>Pokročilý manuální generátor
+    </a>
+</div>
+
+<div class="alert alert-info border-info-subtle bg-info-subtle text-info-emphasis d-flex align-items-center mb-4">
+    <i class="bi bi-lightbulb-fill fs-4 me-3"></i>
+    <div class="small">
+        <strong>Didaktický režim pro vyučujícího:</strong> Nemusíte ručně nastavovat desítky technických parametrů (počet hran, hustotu sítě, acykličnost).
+        Zvolte požadované téma cvičení a jedním kliknutím získáte vhodně dimenzovaný graf, kontextové slovní zadání s otázkami pro studenty a kompletní vzorový klíč pro opravování.
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- 1. Dijkstra: Nejkratší cesta -->
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-light-subtle">
+            <div class="card-header bg-white border-light-subtle d-flex justify-content-between align-items-center">
+                <span class="badge bg-primary">Nejkratší cesta</span>
+                <span class="text-muted small"><i class="bi bi-truck me-1"></i>Logistika</span>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title h6 fw-bold">Optimalizace doručovací trasy</h5>
+                <p class="card-text text-muted small flex-grow-1">
+                    Expresní rozvoz zboží ze skladu A do cíle G. Studenti sestavují tabulku vývoje odhadů vzdáleností Dijkstrovým algoritmem.
+                </p>
+                <div class="bg-light p-2 rounded small text-secondary mb-3">
+                    <i class="bi bi-check2-circle text-success me-1"></i>6–8 měst, kladné doby jízdy<br>
+                    <i class="bi bi-check2-circle text-success me-1"></i>Vhodné pro 15minutové písemky
+                </div>
+                <form method="POST" action="/teaching/generate">
+                    <input type="hidden" name="preset_type" value="dijkstra">
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                        <input type="text" name="tag" class="form-control" placeholder="Štítek (např. Cvičení 3 - Dijkstra)" value="Cvičení - Dijkstra">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-play-fill me-1"></i>Vygenerovat zadání a písemku
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Dijkstra: Trasa s mezizastávkou -->
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-light-subtle border-primary">
+            <div class="card-header bg-primary bg-opacity-10 border-primary-subtle d-flex justify-content-between align-items-center">
+                <span class="badge bg-primary">Podmíněná trasa</span>
+                <span class="text-primary fw-medium small"><i class="bi bi-geo-alt-fill me-1"></i>Mezizastávka</span>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title h6 fw-bold">Trasa s povinnou mezizastávkou</h5>
+                <p class="card-text text-muted small flex-grow-1">
+                    Cesta ze skladu do cíle s podmínkou naložit náklad v mezistanici M. Žádná silnice (hrana) nesmí být projeta dvakrát.
+                </p>
+                <div class="bg-light p-2 rounded small text-secondary mb-3">
+                    <i class="bi bi-check2-circle text-success me-1"></i>Etapové řešení: (A → M) + (M → Cíl)<br>
+                    <i class="bi bi-check2-circle text-success me-1"></i>Výpočet zdržení oproti přímé trase
+                </div>
+                <form method="POST" action="/teaching/generate">
+                    <input type="hidden" name="preset_type" value="dijkstra_stopover">
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                        <input type="text" name="tag" class="form-control" placeholder="Štítek" value="Cvičení - Dijkstra mezizastávka">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-play-fill me-1"></i>Vygenerovat zadání a písemku
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Kruskal: Páteřní optická síť -->
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-light-subtle">
+            <div class="card-header bg-white border-light-subtle d-flex justify-content-between align-items-center">
+                <span class="badge bg-success">Minimální kostra</span>
+                <span class="text-muted small"><i class="bi bi-diagram-2 me-1"></i>Kruskal / Borůvka</span>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title h6 fw-bold">Výstavba páteřní optické sítě</h5>
+                <p class="card-text text-muted small flex-grow-1">
+                    Propojení všech univerzitních kampusů optickými kabely s minimálními celkovými náklady.
+                </p>
+                <div class="bg-light p-2 rounded small text-secondary mb-3">
+                    <i class="bi bi-check2-circle text-success me-1"></i>Výběr hran a detekce cyklů<br>
+                    <i class="bi bi-check2-circle text-success me-1"></i>Zaručené jednoznačné řešení (unikátní váhy)
+                </div>
+                <form method="POST" action="/teaching/generate">
+                    <input type="hidden" name="preset_type" value="kruskal">
+                    <div class="form-check form-check-inline small mb-2">
+                        <input class="form-check-input" type="checkbox" name="unique_weights" id="unique_weights" checked>
+                        <label class="form-check-label text-muted" for="unique_weights">Garantovat unikátní váhy (1 řešení)</label>
+                    </div>
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                        <input type="text" name="tag" class="form-control" placeholder="Štítek" value="Písemka - Kostra grafu">
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm w-100">
+                        <i class="bi bi-play-fill me-1"></i>Vygenerovat zadání a písemku
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Bellman-Ford: Didaktická past se zápornými vahami -->
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-light-subtle border-warning">
+            <div class="card-header bg-warning bg-opacity-10 border-warning-subtle d-flex justify-content-between align-items-center">
+                <span class="badge bg-warning text-dark">Didaktická past</span>
+                <span class="text-warning-emphasis small fw-medium"><i class="bi bi-exclamation-triangle-fill me-1"></i>Záporné váhy</span>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title h6 fw-bold">Trasa se záporným ohodnocením</h5>
+                <p class="card-text text-muted small flex-grow-1">
+                    Finanční arbitráž / dotované trasy. Obsahuje zápornou hranu, ale záměrně <strong>žádný záporný cyklus</strong>.
+                </p>
+                <div class="bg-light p-2 rounded small text-secondary mb-3">
+                    <i class="bi bi-check2-circle text-success me-1"></i>Vysvětlení selhání Dijkstrova algoritmu<br>
+                    <i class="bi bi-check2-circle text-success me-1"></i>Bellman-Fordův algoritmus po fázích
+                </div>
+                <form method="POST" action="/teaching/generate">
+                    <input type="hidden" name="preset_type" value="bellman_ford">
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                        <input type="text" name="tag" class="form-control" placeholder="Štítek" value="Zkouška - Bellman-Ford">
+                    </div>
+                    <button type="submit" class="btn btn-warning btn-sm w-100">
+                        <i class="bi bi-play-fill me-1"></i>Vygenerovat zadání a písemku
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Mosty a artikulace: Zranitelnost sítě -->
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-light-subtle border-danger">
+            <div class="card-header bg-danger bg-opacity-10 border-danger-subtle d-flex justify-content-between align-items-center">
+                <span class="badge bg-danger">Odolnost sítě</span>
+                <span class="text-danger small fw-medium"><i class="bi bi-shield-x me-1"></i>Kritická místa</span>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title h6 fw-bold">Zranitelnost sítě (Mosty a artikulace)</h5>
+                <p class="card-text text-muted small flex-grow-1">
+                    Bezpečnostní audit komunikační sítě. Graf má garantovaný most a artikulační bod (Single Point of Failure).
+                </p>
+                <div class="bg-light p-2 rounded small text-secondary mb-3">
+                    <i class="bi bi-check2-circle text-success me-1"></i>Hledání artikulací a mostů<br>
+                    <i class="bi bi-check2-circle text-success me-1"></i>Návrh záložních spojů pro 2-souvislost
+                </div>
+                <form method="POST" action="/teaching/generate">
+                    <input type="hidden" name="preset_type" value="bridges">
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                        <input type="text" name="tag" class="form-control" placeholder="Štítek" value="Cvičení - Mosty a artikulace">
+                    </div>
+                    <button type="submit" class="btn btn-danger btn-sm w-100">
+                        <i class="bi bi-play-fill me-1"></i>Vygenerovat zadání a písemku
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Topologické řazení: Harmonogram projektu -->
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-light-subtle">
+            <div class="card-header bg-white border-light-subtle d-flex justify-content-between align-items-center">
+                <span class="badge bg-info text-dark">Topologické řazení</span>
+                <span class="text-muted small"><i class="bi bi-kanban me-1"></i>Projektový management</span>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title h6 fw-bold">Harmonogram vývojového projektu</h5>
+                <p class="card-text text-muted small flex-grow-1">
+                    Činnosti IT projektu s technologickými návaznostmi. Studenti určují pořadí prací Kahnovým algoritmem.
+                </p>
+                <div class="bg-light p-2 rounded small text-secondary mb-3">
+                    <i class="bi bi-check2-circle text-success me-1"></i>Orientovaný acyklický graf (DAG)<br>
+                    <i class="bi bi-check2-circle text-success me-1"></i>Vstupní stupně a odebírání zdrojů
+                </div>
+                <form method="POST" action="/teaching/generate">
+                    <input type="hidden" name="preset_type" value="toposort">
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                        <input type="text" name="tag" class="form-control" placeholder="Štítek" value="Cvičení - Topologické řazení">
+                    </div>
+                    <button type="submit" class="btn btn-info btn-sm w-100">
+                        <i class="bi bi-play-fill me-1"></i>Vygenerovat zadání a písemku
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Maximální tok: Ropovodní síť -->
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-light-subtle">
+            <div class="card-header bg-white border-light-subtle d-flex justify-content-between align-items-center">
+                <span class="badge bg-secondary">Toky v sítích</span>
+                <span class="text-muted small"><i class="bi bi-water me-1"></i>Ford-Fulkerson</span>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title h6 fw-bold">Přepravní kapacita potrubní sítě</h5>
+                <p class="card-text text-muted small flex-grow-1">
+                    Doprava suroviny z přístavního terminálu do rafinérie. Výpočet maximálního průtoku a nalezení úzkého hrdla.
+                </p>
+                <div class="bg-light p-2 rounded small text-secondary mb-3">
+                    <i class="bi bi-check2-circle text-success me-1"></i>Zlepšující cesty a reziduální kapacita<br>
+                    <i class="bi bi-check2-circle text-success me-1"></i>Věta o max-toku a min-řezu
+                </div>
+                <form method="POST" action="/teaching/generate">
+                    <input type="hidden" name="preset_type" value="max_flow">
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                        <input type="text" name="tag" class="form-control" placeholder="Štítek" value="Cvičení - Maximální tok">
+                    </div>
+                    <button type="submit" class="btn btn-secondary btn-sm w-100">
+                        <i class="bi bi-play-fill me-1"></i>Vygenerovat zadání a písemku
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
