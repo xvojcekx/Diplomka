@@ -137,6 +137,16 @@ main {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+select.form-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+select.form-select::picker-icon {
+    display: none;
+}
+
 .form-control:focus,
 .form-select:focus {
     background-color: #ffffff;

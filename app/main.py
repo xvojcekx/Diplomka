@@ -124,19 +124,40 @@ def _reconstruct_graph(graph_data: dict) -> nx.Graph:
 # VIZUALIZACE
 # ============================================================================
 
-def render_graph_png(G: nx.Graph, graph_id: str) -> str:
+def render_graph_png(G: nx.Graph, graph_id: str, custom_pos: Optional[dict] = None) -> str:
     """Vyrenderuje graf jako PNG do /static/graphs/{id}.png"""
     fig, ax = plt.subplots(1, 1, figsize=(7.4, 4.9))
 
     seed = 42
-    # Nepoužívat váhy hran jako sílu pružin (jinak se hrany s vysokou vahou smrsknou k sobě)
-    if G.number_of_nodes() <= 14 and G.number_of_nodes() >= 3:
+    pos = None
+    if custom_pos:
         try:
-            pos = nx.kamada_kawai_layout(G, weight=None)
+            parsed = {}
+            for n in G.nodes():
+                c = custom_pos.get(str(n), custom_pos.get(int(n)))
+                if c is not None and "x" in c and "y" in c:
+                    # SVG osa Y roste dolů, Matplotlib osa Y roste nahoru
+                    parsed[n] = (float(c["x"]), -float(c["y"]))
+            if len(parsed) == G.number_of_nodes():
+                xs = [p[0] for p in parsed.values()]
+                ys = [p[1] for p in parsed.values()]
+                dx = (max(xs) - min(xs)) or 1.0
+                dy = (max(ys) - min(ys)) or 1.0
+                cx, cy = (max(xs) + min(xs)) / 2.0, (max(ys) + min(ys)) / 2.0
+                scale = max(dx, dy) / 2.0 or 1.0
+                pos = {n: ((p[0] - cx) / scale, (p[1] - cy) / scale) for n, p in parsed.items()}
         except Exception:
+            pos = None
+
+    if pos is None:
+        # Nepoužívat váhy hran jako sílu pružin (jinak se hrany s vysokou vahou smrsknou k sobě)
+        if G.number_of_nodes() <= 14 and G.number_of_nodes() >= 3:
+            try:
+                pos = nx.kamada_kawai_layout(G, weight=None)
+            except Exception:
+                pos = nx.spring_layout(G, seed=seed, k=1.8, weight=None)
+        else:
             pos = nx.spring_layout(G, seed=seed, k=1.8, weight=None)
-    else:
-        pos = nx.spring_layout(G, seed=seed, k=1.8, weight=None)
 
     # Barvy uzlů
     node_colors = ["#4f46e5"] * G.number_of_nodes()
@@ -722,10 +743,14 @@ async def exam_page(
     node_count = graph_data.get("properties", {}).get("node_count", 0)
     node_options = [{"idx": i, "label": f"{node_to_letter(i)} ({i})"} for i in range(node_count)]
 
+    png_file = os.path.join(GRAPHS_DIR, f"{graph_id}.png")
+    png_v = int(os.path.getmtime(png_file)) if os.path.exists(png_file) else 0
+
     return templates.TemplateResponse(request, "exam.html", {
         "graph": graph_data,
         "scenario": scenario_data,
         "node_options": node_options,
+        "png_v": png_v,
     })
 
 
@@ -939,6 +964,27 @@ async def api_graphs_delete_all(request: Request):
     return RedirectResponse(url="/export", status_code=303)
 
 
+@app.post("/api/graph/{graph_id}/save_positions")
+async def api_graph_save_positions(request: Request, graph_id: str):
+    """Uloží ručně upravené pozice uzlů do SQLite a přegeneruje čistý tiskový PNG obrázek."""
+    graph_data = get_graph(graph_id)
+    if not graph_data:
+        return JSONResponse({"error": "Graph not found"}, status_code=404)
+
+    try:
+        data = await request.json()
+        positions = data.get("positions")
+        if not positions or not isinstance(positions, dict):
+            return JSONResponse({"error": "Chybí pozice uzlů"}, status_code=400)
+
+        save_positions(graph_id, positions)
+        G = _reconstruct_graph(graph_data)
+        png_path = render_graph_png(G, graph_id, custom_pos=positions)
+        return {"status": "success", "png_path": png_path}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.post("/api/graph/{graph_id}/save_png")
 async def api_graph_save_png(request: Request, graph_id: str):
     """Uloží nový náhledový obrázek (base64) na server ze SVG editoru."""
@@ -1041,7 +1087,7 @@ async def api_visualize(graph_id: str, algorithm: str, source: int = None, targe
 
     # Přidej informace o grafu pro vykreslení
     return {
-        "algorithm_name": algorithm,
+        "algorithm_name": result.get("algorithm_name", algorithm),
         "graph_data": {
             "nodes": [int(n) for n in nodes],
             "edges": [{"source": int(u), "target": int(v), "weight": G[u][v].get("weight", None)} for u, v in G.edges()],

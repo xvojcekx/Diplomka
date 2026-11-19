@@ -14,7 +14,7 @@
                     <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle me-1">
                         <i class="bi bi-tag-fill me-1"></i>{{ graph.tag if graph.tag else 'Bez štítku' }}
                     </span>
-                    <div class="input-group input-group-sm" style="width: 240px;">
+                    <div class="input-group input-group-sm" style="width: 280px;">
                         <input type="text" name="tag" class="form-control form-control-sm py-0" placeholder="Upravit štítek..." value="{{ graph.tag or '' }}">
                         <button class="btn btn-outline-secondary btn-sm py-0 px-2" type="submit" title="Uložit štítek">Uložit</button>
                     </div>
@@ -252,7 +252,7 @@
                         <label class="form-label small text-muted mb-1">Z uzlu</label>
                         <select class="form-select form-select-sm" id="spSource">
                             {% for n in nodes %}
-                            <option value="{{ n }}" {% if loop.first %}selected{% endif %}>u{{ n }}</option>
+                            <option value="{{ n }}" {% if loop.first %}selected{% endif %}>{{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[n] if n < 26 else "u" ~ n }} ({{ n }})</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -260,7 +260,7 @@
                         <label class="form-label small text-muted mb-1">Do uzlu</label>
                         <select class="form-select form-select-sm" id="spTarget">
                             {% for n in nodes %}
-                            <option value="{{ n }}" {% if loop.last %}selected{% endif %}>u{{ n }}</option>
+                            <option value="{{ n }}" {% if loop.last %}selected{% endif %}>{{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[n] if n < 26 else "u" ~ n }} ({{ n }})</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -618,14 +618,14 @@
 </div>
 {% endif %}
 
-<!-- Validátor studentských odpovědí (Grader pro víceznačné úlohy) -->
-<h3 class="mt-5 mb-3"><i class="bi bi-patch-check me-2"></i>Automatický validátor studentských řešení (Grader)</h3>
+<!-- Validátor studentských odpovědí (pro víceznačné úlohy) -->
+<h3 class="mt-5 mb-3"><i class="bi bi-patch-check me-2"></i>Automatický validátor studentských řešení</h3>
 <div class="card bg-white shadow-sm border-light-subtle mb-4">
     <div class="card-header border-light-subtle d-flex justify-content-between align-items-center">
         <span class="small text-muted">
             Ověřuje i <strong>alternativní správná řešení</strong> (např. jinou minimální kostru se stejnou vahou, alternativní nejkratší cestu nebo jiné platné topologické pořadí).
         </span>
-        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Grader v2</span>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Validátor v2</span>
     </div>
     <div class="card-body">
         <div class="row g-3 align-items-end">
@@ -665,14 +665,14 @@
                 <tr>
                     <th class="bg-light border-bottom border-end"></th>
                     {% for i in range(graph.adjacency_matrix | length) %}
-                    <th class="bg-light border-bottom text-dark font-monospace text-center px-1" style="min-width: 32px">u{{ i }}</th>
+                    <th class="bg-light border-bottom text-dark font-monospace text-center px-1" style="min-width: 48px">{{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i] if i < 26 else "u" ~ i }} ({{ i }})</th>
                     {% endfor %}
                 </tr>
             </thead>
             <tbody>
                 {% for row_idx in range(graph.adjacency_matrix | length) %}
                 <tr>
-                    <th class="bg-light border-end text-dark font-monospace align-middle">u{{ row_idx }}</th>
+                    <th class="bg-light border-end text-dark font-monospace align-middle text-nowrap">{{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[row_idx] if row_idx < 26 else "u" ~ row_idx }} ({{ row_idx }})</th>
                     {% for val in graph.adjacency_matrix[row_idx] %}
                     <td class="align-middle {% if val != 0 %}table-primary fw-medium px-1{% else %}text-muted px-1{% endif %}" style="min-width: 32px">
                         {{ val | int if val == val | int else val }}
@@ -704,8 +704,8 @@
                 {% for edge in graph.edge_list %}
                 <tr>
                     <td class="text-muted fw-medium border-end bg-light">h{{ loop.index }}</td>
-                    <td class="font-monospace">u{{ edge.source }}</td>
-                    <td class="font-monospace">u{{ edge.target }}</td>
+                    <td class="font-monospace">{{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[edge.source] if edge.source < 26 else "u" ~ edge.source }} ({{ edge.source }})</td>
+                    <td class="font-monospace">{{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[edge.target] if edge.target < 26 else "u" ~ edge.target }} ({{ edge.target }})</td>
                     {% if graph.config.weighted %}
                     <td><span class="badge bg-primary">{{ edge.weight }}</span></td>
                     {% endif %}

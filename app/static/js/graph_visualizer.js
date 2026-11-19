@@ -758,6 +758,37 @@
         btnDownloadPng.addEventListener('click', saveAndDownloadSVGAsPNG);
     }
 
+    const btnSaveLayout = document.getElementById('btnSaveLayout');
+    if (btnSaveLayout) {
+        btnSaveLayout.addEventListener('click', async function () {
+            if (!graphId || !nodePositions || Object.keys(nodePositions).length === 0) return;
+            const oldHtml = btnSaveLayout.innerHTML;
+            btnSaveLayout.disabled = true;
+            btnSaveLayout.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Ukládám...';
+            try {
+                const resp = await fetch(`/api/graph/${graphId}/save_positions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ positions: nodePositions })
+                });
+                if (!resp.ok) throw new Error('Chyba ukládání');
+                btnSaveLayout.innerHTML = '<i class="bi bi-check2 me-1"></i>Rozložení uloženo!';
+                btnSaveLayout.classList.remove('btn-outline-primary');
+                btnSaveLayout.classList.add('btn-success');
+            } catch (err) {
+                console.error('Chyba při ukládání pozic:', err);
+                btnSaveLayout.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Chyba';
+            } finally {
+                setTimeout(() => {
+                    btnSaveLayout.innerHTML = oldHtml;
+                    btnSaveLayout.classList.remove('btn-success');
+                    btnSaveLayout.classList.add('btn-outline-primary');
+                    btnSaveLayout.disabled = false;
+                }, 2200);
+            }
+        });
+    }
+
     if (algoSelect && algoSelect.options.length > 0) {
         loadAlgorithm();
     } else {

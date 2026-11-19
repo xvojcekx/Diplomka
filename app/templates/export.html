@@ -139,10 +139,24 @@
 
                 <!-- Algoritmy -->
                 {% if data.algorithms %}
+                {% set algo_labels = {
+                    'shortest_path': 'Dijkstra',
+                    'bellman_ford': 'Bellman–Ford',
+                    'mst': 'Minimální kostra',
+                    'topological_sort': 'Topol. řazení',
+                    'bipartite': 'Bipartitnost',
+                    'max_flow': 'Maximální tok',
+                    'coloring': 'Barvení',
+                    'euler': 'Euler',
+                    'hamilton': 'Hamilton',
+                    'components': 'Komponenty / mosty'
+                } %}
                 <div class="mb-3 small">
                     <span class="text-muted fw-bold me-1">Algoritmy:</span>
-                    {% for algo_name in data.algorithms.keys() %}
-                    <span class="badge bg-light text-dark border border-secondary-subtle px-2 py-1">{{ algo_name }}</span>
+                    {% for algo_name, algo_val in data.algorithms.items() %}
+                    {% if not (algo_val is mapping and algo_val.get('error')) and not (algo_name == 'max_flow' and not data.config.directed) and not (algo_name == 'shortest_path' and data.config.get('allow_negative_edge')) %}
+                    <span class="badge bg-light text-dark border border-secondary-subtle px-2 py-1 mb-1">{{ algo_labels.get(algo_name, algo_name) }}</span>
+                    {% endif %}
                     {% endfor %}
                 </div>
                 {% endif %}

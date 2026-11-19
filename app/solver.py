@@ -9,6 +9,14 @@ import networkx as nx
 from typing import Optional
 
 
+def _fmt_node(n: int) -> str:
+    """Sjednocené označení uzlu 'A (0)' pro popisy kroků vizualizace."""
+    idx = int(n)
+    if 0 <= idx < 26:
+        return f"{chr(65 + idx)} ({idx})"
+    return f"u{idx}"
+
+
 # ============================================================================
 # IMPLEMENTOVANÉ ALGORITMY
 # ============================================================================
@@ -312,7 +320,7 @@ def kruskal_steps(G: nx.Graph) -> dict:
                 "action": "examine",
                 "edge": edge,
                 "weight": w,
-                "description": f"Zkoumáme hranu {u}–{v} (váha {w}).",
+                "description": f"Zkoumáme hranu {_fmt_node(u)}–{_fmt_node(v)} (váha {w}).",
                 "selected_edges": [list(e) for e in selected_edges],
                 "current_edge": edge,
                 "highlight_nodes": [int(u), int(v)],
@@ -328,7 +336,7 @@ def kruskal_steps(G: nx.Graph) -> dict:
                     "action": "accept",
                     "edge": edge,
                     "weight": w,
-                    "description": f"Hrana {u}–{v} (váha {w}) PŘIJATA — uzly jsou v různých komponentách.",
+                    "description": f"Hrana {_fmt_node(u)}–{_fmt_node(v)} (váha {w}) PŘIJATA — uzly jsou v různých komponentách.",
                     "selected_edges": [list(e) for e in selected_edges],
                     "current_edge": edge,
                     "highlight_nodes": [int(u), int(v)],
@@ -340,7 +348,7 @@ def kruskal_steps(G: nx.Graph) -> dict:
                     "action": "reject",
                     "edge": edge,
                     "weight": w,
-                    "description": f"Hrana {u}–{v} (váha {w}) ZAMÍTNUTA — uzly jsou ve stejné komponentě (vznikl by cyklus).",
+                    "description": f"Hrana {_fmt_node(u)}–{_fmt_node(v)} (váha {w}) ZAMÍTNUTA — uzly jsou ve stejné komponentě (vznikl by cyklus).",
                     "selected_edges": [list(e) for e in selected_edges],
                     "current_edge": edge,
                     "highlight_nodes": [int(u), int(v)],
@@ -468,7 +476,7 @@ def boruvka_steps(G: nx.Graph) -> dict:
                         "action": "accept",
                         "edge": edge,
                         "weight": w,
-                        "description": f"Iterace {iteration}: hrana {u}–{v} (váha {w}) PŘIJATA — nejlevnější hrana komponenty.",
+                        "description": f"Iterace {iteration}: hrana {_fmt_node(u)}–{_fmt_node(v)} (váha {w}) PŘIJATA — nejlevnější hrana komponenty.",
                         "selected_edges": [list(e) for e in selected_edges],
                         "current_edge": edge,
                         "highlight_nodes": [int(u), int(v)],
@@ -526,7 +534,7 @@ def dijkstra_steps(G: nx.Graph, source: int, target: int) -> dict:
             "action": "init",
             "edge": None,
             "weight": None,
-            "description": f"Inicializace: zdroj = {source}, cíl = {target}. "
+            "description": f"Inicializace: zdroj = {_fmt_node(source)}, cíl = {_fmt_node(target)}. "
                           f"Vzdálenost zdroje = 0, ostatní = ∞.",
             "selected_edges": [],
             "current_edge": None,
@@ -549,7 +557,7 @@ def dijkstra_steps(G: nx.Graph, source: int, target: int) -> dict:
                 "action": "examine",
                 "edge": [int(prev[u]), int(u)] if prev[u] is not None else None,
                 "weight": d,
-                "description": f"Navštěvujeme uzel {u} (vzdálenost {d}). "
+                "description": f"Navštěvujeme uzel {_fmt_node(u)} (vzdálenost {d}). "
                               f"Prozkoumáme jeho sousedy.",
                 "selected_edges": [list(e) for e in path_edges],
                 "current_edge": [int(prev[u]), int(u)] if prev[u] is not None else None,
@@ -580,7 +588,7 @@ def dijkstra_steps(G: nx.Graph, source: int, target: int) -> dict:
                         "action": "accept",
                         "edge": edge,
                         "weight": w,
-                        "description": f"Relaxace hrany {u}→{v} (váha {w}): {d} + {w} = {new_dist} < {old_dist_str} → aktualizujeme.",
+                        "description": f"Relaxace hrany {_fmt_node(u)} → {_fmt_node(v)} (váha {w}): {d} + {w} = {new_dist} < {old_dist_str} → aktualizujeme.",
                         "selected_edges": [list(e) for e in path_edges],
                         "current_edge": edge,
                         "highlight_nodes": [int(u), int(v)],
@@ -593,7 +601,7 @@ def dijkstra_steps(G: nx.Graph, source: int, target: int) -> dict:
                         "action": "reject",
                         "edge": edge,
                         "weight": w,
-                        "description": f"Hrana {u}→{v} (váha {w}): {d} + {w} = {new_dist} ≥ {dist[v]} → neaktualizujeme.",
+                        "description": f"Hrana {_fmt_node(u)} → {_fmt_node(v)} (váha {w}): {d} + {w} = {new_dist} ≥ {dist[v]} → neaktualizujeme.",
                         "selected_edges": [list(e) for e in path_edges],
                         "current_edge": edge,
                         "highlight_nodes": [int(u), int(v)],
@@ -617,7 +625,7 @@ def dijkstra_steps(G: nx.Graph, source: int, target: int) -> dict:
             "action": "done",
             "edge": None,
             "weight": None,
-            "description": f"Hotovo! Nejkratší cesta: {' → '.join(map(str, path))} s délkou {dist[target]}.",
+            "description": f"Hotovo! Nejkratší cesta: {' → '.join(_fmt_node(x) for x in path)} s délkou {dist[target]}.",
             "selected_edges": path_edges,
             "current_edge": None,
             "highlight_nodes": path,
@@ -661,7 +669,7 @@ def bfs_steps(G: nx.Graph, source: int) -> dict:
             "action": "init",
             "edge": None,
             "weight": None,
-            "description": f"Inicializace BFS: začínáme z uzlu {source}. Fronta: [{source}].",
+            "description": f"Inicializace BFS: začínáme z uzlu {_fmt_node(source)}. Fronta: [{_fmt_node(source)}].",
             "selected_edges": [],
             "current_edge": None,
             "highlight_nodes": [int(source)],
@@ -676,7 +684,7 @@ def bfs_steps(G: nx.Graph, source: int) -> dict:
                 "action": "examine",
                 "edge": None,
                 "weight": None,
-                "description": f"Vyjímáme uzel {u} z fronty. Prozkoumáme sousedy.",
+                "description": f"Vyjímáme uzel {_fmt_node(u)} z fronty. Prozkoumáme sousedy.",
                 "selected_edges": [list(e) for e in tree_edges],
                 "current_edge": None,
                 "highlight_nodes": [int(u)],
@@ -697,7 +705,7 @@ def bfs_steps(G: nx.Graph, source: int) -> dict:
                         "action": "accept",
                         "edge": edge,
                         "weight": G[u][v].get("weight", None),
-                        "description": f"Uzel {v} nenavštíven → přidáváme do fronty. Hrana {u}–{v} přidána do BFS stromu.",
+                        "description": f"Uzel {_fmt_node(v)} nenavštíven → přidáváme do fronty. Hrana {_fmt_node(u)}–{_fmt_node(v)} přidána do BFS stromu.",
                         "selected_edges": [list(e) for e in tree_edges],
                         "current_edge": edge,
                         "highlight_nodes": [int(u), v],
@@ -709,7 +717,7 @@ def bfs_steps(G: nx.Graph, source: int) -> dict:
                         "action": "reject",
                         "edge": edge,
                         "weight": G[u][v].get("weight", None),
-                        "description": f"Uzel {v} už byl navštíven → přeskakujeme.",
+                        "description": f"Uzel {_fmt_node(v)} už byl navštíven → přeskakujeme.",
                         "selected_edges": [list(e) for e in tree_edges],
                         "current_edge": edge,
                         "highlight_nodes": [int(u), v],
@@ -759,7 +767,7 @@ def dfs_steps(G: nx.Graph, source: int) -> dict:
             "action": "init",
             "edge": None,
             "weight": None,
-            "description": f"Inicializace DFS: začínáme z uzlu {source}. Zásobník: [{source}].",
+            "description": f"Inicializace DFS: začínáme z uzlu {_fmt_node(source)}. Zásobník: [{_fmt_node(source)}].",
             "selected_edges": [],
             "current_edge": None,
             "highlight_nodes": [int(source)],
@@ -784,7 +792,7 @@ def dfs_steps(G: nx.Graph, source: int) -> dict:
                     "action": "accept",
                     "edge": edge,
                     "weight": G[parent][u].get("weight", None),
-                    "description": f"Navštěvujeme uzel {u} (z uzlu {parent}). Hrana {parent}–{u} přidána do DFS stromu.",
+                    "description": f"Navštěvujeme uzel {_fmt_node(u)} (z uzlu {_fmt_node(parent)}). Hrana {_fmt_node(parent)}–{_fmt_node(u)} přidána do DFS stromu.",
                     "selected_edges": [list(e) for e in tree_edges],
                     "current_edge": edge,
                     "highlight_nodes": [int(parent), u],
@@ -796,7 +804,7 @@ def dfs_steps(G: nx.Graph, source: int) -> dict:
                     "action": "examine",
                     "edge": None,
                     "weight": None,
-                    "description": f"Navštěvujeme počáteční uzel {u}.",
+                    "description": f"Navštěvujeme počáteční uzel {_fmt_node(u)}.",
                     "selected_edges": [list(e) for e in tree_edges],
                     "current_edge": None,
                     "highlight_nodes": [u],
@@ -815,7 +823,7 @@ def dfs_steps(G: nx.Graph, source: int) -> dict:
                         "action": "reject",
                         "edge": edge,
                         "weight": G[u][v].get("weight", None),
-                        "description": f"Uzel {v} už byl navštíven → přeskakujeme hranu {u}–{v}.",
+                        "description": f"Uzel {_fmt_node(v)} už byl navštíven → přeskakujeme hranu {_fmt_node(u)}–{_fmt_node(v)}.",
                         "selected_edges": [list(e) for e in tree_edges],
                         "current_edge": edge,
                         "highlight_nodes": [u, v],
@@ -1060,7 +1068,7 @@ def bellman_ford_steps(G: nx.Graph, source: int = None, target: int = None) -> d
             "action": "init",
             "edge": None,
             "weight": None,
-            "description": f"Inicializace Bellman-Ford: dist[{source}] = 0, ostatní = ∞.",
+            "description": f"Inicializace Bellman-Ford: d({_fmt_node(source)}) = 0, ostatní = ∞.",
             "selected_edges": [],
             "current_edge": None,
             "highlight_nodes": [int(source)],
@@ -1082,7 +1090,7 @@ def bellman_ford_steps(G: nx.Graph, source: int = None, target: int = None) -> d
                             "action": "accept",
                             "edge": [u, v],
                             "weight": w,
-                            "description": f"Iterace {iteration}: Relaxace hrany {u}→{v} (váha {w}). dist[{v}] snížena z {old} na {dist[v]}.",
+                            "description": f"Iterace {iteration}: Relaxace hrany {_fmt_node(u)} → {_fmt_node(v)} (váha {w}). d({_fmt_node(v)}) snížena z {old} na {dist[v]}.",
                             "selected_edges": current_tree_edges(),
                             "current_edge": [u, v],
                             "highlight_nodes": [u, v],
@@ -1099,7 +1107,7 @@ def bellman_ford_steps(G: nx.Graph, source: int = None, target: int = None) -> d
                     "action": "reject",
                     "edge": [u, v],
                     "weight": w,
-                    "description": f"Detekován záporný cyklus na hraně {u}→{v}!",
+                    "description": f"Detekován záporný cyklus na hraně {_fmt_node(u)} → {_fmt_node(v)}!",
                     "selected_edges": current_tree_edges(),
                     "current_edge": [u, v],
                     "highlight_nodes": [u, v],
@@ -1126,9 +1134,9 @@ def bellman_ford_steps(G: nx.Graph, source: int = None, target: int = None) -> d
                 curr = p
             path_nodes.reverse()
             final_edges.reverse()
-            desc = f"Hotovo! Nejkratší cesta z {source} do {target}: {' → '.join(map(str, path_nodes))} (délka {dist[int(target)]})."
+            desc = f"Hotovo! Nejkratší cesta z {_fmt_node(source)} do {_fmt_node(target)}: {' → '.join(_fmt_node(x) for x in path_nodes)} (délka {dist[int(target)]})."
         else:
-            desc = f"Hotovo! Uzel {target} není z uzlu {source} dosažitelný."
+            desc = f"Hotovo! Uzel {_fmt_node(target)} není z uzlu {_fmt_node(source)} dosažitelný."
 
         steps.append({
             "step": step_num,

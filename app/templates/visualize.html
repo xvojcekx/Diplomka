@@ -69,12 +69,17 @@
     <!-- SVG Canvas -->
     <div class="col-lg-8">
         <div class="card bg-white shadow-sm border-light-subtle">
-            <div class="card-header border-light-subtle d-flex justify-content-between align-items-center">
+            <div class="card-header border-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="mb-0" id="algoTitle">
                     <i class="bi bi-diagram-3 me-2"></i>Vyberte algoritmus
                 </h5>
-                <div id="stepCounter" class="badge bg-secondary">
-                    Krok 0 / 0
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnSaveLayout" title="Uložit aktuální rozložení uzlů do databáze a tiskového PNG">
+                        <i class="bi bi-floppy me-1"></i>Uložit rozložení do PNG
+                    </button>
+                    <div id="stepCounter" class="badge bg-secondary">
+                        Krok 0 / 0
+                    </div>
                 </div>
             </div>
             <div class="card-body p-0" style="position: relative;">
