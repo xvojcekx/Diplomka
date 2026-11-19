@@ -8,9 +8,9 @@
 
 ## 1. K čemu aplikace slouží
 
-Tato webová aplikace slouží k **automatizovanému generování, analýze, interaktivní vizualizaci, přípravě tiskových písemek se slovním zadáním a exportu grafových úloh** pro výuku předmětu *Teorie grafů* na Provozně ekonomické fakultě Mendelovy univerzity v Brně (PEF MENDELU).
+Tato webová aplikace slouží k **automatizovanému generování, analýze, interaktivní vizualizaci, přípravě tiskových písemek se slovním zadáním, tvorbě podkladů pro přednáškové prezentace a exportu grafových úloh** pro výuku předmětu *Teorie grafů* na Provozně ekonomické fakultě Mendelovy univerzity v Brně (PEF MENDELU).
 
-Řeší klíčový problém přípravy testových a cvičebních zadání: vyučující nemusí ručně vymýšlet grafy, kreslit jejich obrázky, vymýšlet kontextová slovní zadání a ručně přepočítávat mezivýsledky pro každou variantu testu. Aplikace na základě zvolených parametrů nebo didaktických předvoleb vygeneruje požadovaný počet unikátních grafů, automaticky pro ně vypočítá správná řešení referenčních algoritmů, sestaví tiskový pracovní list písemky a připraví podklady pro přímý import do **Univerzitního informačního systému (UIS MENDELU)**.
+Řeší klíčový problém přípravy testových, cvičebních i přednáškových materiálů: vyučující nemusí ručně vymýšlet grafy, kreslit jejich obrázky do slajdů či písemek, vymýšlet kontextová slovní zadání a ručně přepočítávat mezivýsledky pro každou variantu testu. Aplikace na základě zvolených parametrů nebo didaktických předvoleb vygeneruje požadovaný počet unikátních grafů, automaticky pro ně vypočítá správná řešení referenčních algoritmů, sestaví tiskový pracovní list písemky, umožní jedním kliknutím stáhnout přehledné PNG obrázky či snímky kroků algoritmů do prezentací a připraví podklady pro přímý import do **Univerzitního informačního systému (UIS MENDELU)**.
 
 ---
 
@@ -19,9 +19,9 @@ Tato webová aplikace slouží k **automatizovanému generování, analýze, int
 ### Výuka — demo a didaktické předvolby (`app/scenarios.py`, `/teaching`, `/exam/{id}`)
 * **Didaktické předvolby na jedno kliknutí (`/teaching`):** Rychlé vygenerování grafu se zaručenými pedagogickými vlastnostmi pro sedm typových úloh:
   1. **Nejkratší cesta (Dijkstrův algoritmus)** — logistický rozvoz zásilek mezi městy.
-  2. **Trasa s povinnou mezizastávkou bez opakování hran** — nalezení nejkratšího hranově disjunktního sledu $S \to M \to T$ s automatickým výběrem mezizastávky mimo přímou nejkratší cestu a vyčíslením časového zdržení.
+  2. **Trasa s povinnou mezizastávkou (prostá cesta)** — nalezení nejkratší prosté cesty $S \to M \to T$ (bez opakování vrcholů i hran) s automatickým výběrem mezizastávky mimo přímou nejkratší cestu a vyčíslením časového zdržení.
   3. **Minimální kostra sítě (Kruskalův algoritmus)** — návrh páteřní optické sítě s volitelnou garancí unikátních vah hran (zaručeně jednoznačná kostra).
-  4. **Záporné ohodnocení hran (Bellmanův-Fordův algoritmus)** — finanční arbitráž se zápornou hranou bez záporného cyklu (didaktická past demonstrující selhání hladového přístupu Dijkstrova algoritmu).
+  4. **Záporné ohodnocení hran (Bellmanův-Fordův algoritmus)** — finanční arbitráž s alespoň jednou zápornou hranou bez záporného cyklu (pro nácvik Bellmanova-Fordova algoritmu tam, kde nelze použít Dijkstrův algoritmus).
   5. **Zranitelnost sítě (Mosty a artikulace)** — kritická infrastruktura se zaručeným mostem a artikulačními body včetně automatického návrhu záložní linky.
   6. **Harmonogram projektu (Topologické řazení DAG)** — projektové řízení s výpočtem vstupních stupňů $\deg^-(v)$ pro Kahnův algoritmus.
   7. **Přepravní kapacita potrubní sítě (Max-Flow / Min-Cut)** — Fordův-Fulkersonův (Edmondsův-Karpův) algoritmus s rozkladem vrcholů minimálního řezu $(S, T)$.
@@ -68,8 +68,8 @@ Tato webová aplikace slouží k **automatizovanému generování, analýze, int
 ### Vizualizace a grafický editor (`app/static/js/graph_visualizer.js`)
 * **Sjednocené duální popisky uzlů (`A (0)`, `B (1)`, …):** Ve statickém PNG, interaktivním Pyvis modelu i v SVG krokovacím plátně jsou uzly označeny současně písmenem i číselným indexem.
 * **Interaktivní pohled (Pyvis):** Dynamický fyzikální model (zoom, drag & drop uzlů).
-* **Statický SVG editor:** Umožňuje vyučujícímu ručně doladit pozice uzlů myší, trvale uložit souřadnice do databáze a přegenerovat čistý **PNG obrázek** pro tisk či vložení do testu.
-* **Interaktivní přehrávač algoritmů (`/visualize/{id}`):** Krokování průchodu grafem (Play/Pause, Další/Předchozí krok, volba rychlosti animace, barevné zvýraznění právě zkoumaných, přijatých a zamítnutých hran a log kroků).
+* **Statický SVG editor (pro písemky i přednáškové prezentace):** Umožňuje vyučujícímu ručně doladit pozice uzlů myší, trvale uložit souřadnice do databáze a přegenerovat čistý **PNG obrázek** pro tisk písemky, vložení do slajdů prezentace nebo studijních opor.
+* **Interaktivní přehrávač algoritmů (`/visualize/{id}`):** Krokování průchodu grafem (Play/Pause, Další/Předchozí krok, volba rychlosti animace, barevné zvýraznění právě zkoumaných, přijatých a zamítnutých hran, sjednocený log kroků `A (0) → B (1)` a přímé tlačítko pro uložení rozložení do PNG) — vhodné jak pro živou demonstraci na projektoru, tak pro pořízení výukových snímků (screenshotů) jednotlivých fází algoritmu do prezentací.
 
 ### Obousměrná podpora formátu `.tg` a exporty pro UIS (`app/exporter.py`)
 * **Export do `.tg` (formát používaný v předmětu Teorie grafů na PEF MENDELU):**
@@ -87,7 +87,7 @@ Tato webová aplikace slouží k **automatizovanému generování, analýze, int
   * `graph_positions` — uložené $(x, y)$ souřadnice uzlů z grafického editoru.
 
 ### Automatizované testy a CI/CD (`tests/`, `.github/workflows/tests.yml`)
-* Sada **66 automatizovaných testů** postavených na frameworku **Pytest** (unit testy algoritmů a validátoru v `test_solver.py`, testy generátoru a didaktických voleb v `test_generator.py` a integrační testy REST API, výukových předvoleb a písemek v `test_api.py`).
+* Sada **68 automatizovaných testů** postavených na frameworku **Pytest** (unit testy algoritmů a validátoru v `test_solver.py`, testy generátoru a didaktických voleb v `test_generator.py`, integrační testy REST API, výukových předvoleb a písemek v `test_api.py` a nezávislé matematické ověření v `test_independent_verification.py`).
 * Testy běží nad izolovanou testovací databází (`TESTING=1`), takže neovlivňují produkční data.
 * Součástí repozitáře je **GitHub Actions CI/CD pipeline**, která spouští testy při každém `push` nebo `pull_request`.
 
@@ -120,7 +120,7 @@ Tato webová aplikace slouží k **automatizovanému generování, analýze, int
 │       ├── css/style.css        # Vlastní styly
 │       ├── js/graph_visualizer.js # SVG editor a animace průchodu algoritmů
 │       └── graphs/              # Vygenerované PNG a HTML soubory (gitignored)
-├── tests/                       # Automatizované testy (Pytest — 66 testů)
+├── tests/                       # Automatizované testy (Pytest — 68 testů)
 │   ├── conftest.py              # Nastavení testovacího prostředí (TESTING=1)
 │   ├── test_solver.py           # Unit testy grafových algoritmů a validátoru
 │   ├── test_generator.py        # Unit testy generátoru grafů a didaktických voleb

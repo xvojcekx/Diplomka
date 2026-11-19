@@ -14,9 +14,9 @@
 | 1 | **Nastudovat** backendové technologie, vizualizaci (interaktivní + statickou), responzivní UI, kontejnerizaci | ✅ Hotovo (FastAPI, NetworkX, Pyvis, SVG/JS, Matplotlib, Bootstrap 5, Docker) | ✅ Hotovo — Kapitola 2 (Teoretická východiska) |
 | 2 | **Formulovat požadavky** na funkcionalitu ve spolupráci s vyučujícími | ✅ Hotovo (funkční F1–F16, nefunkční N1–N7, případy užití UC1–UC8) | ✅ Hotovo — Kapitola 3 (Analýza požadavků) |
 | 3 | **Navrhnout architekturu**, uživatelské rozhraní a **datovou strukturu** | ✅ Hotovo (4vrstvá architektura, SQLite DAO se 3 tabulkami + štítky `tag`, 9 šablon včetně `/teaching` a `/exam/{id}`) | ✅ Hotovo — Kapitola 4 (Návrh řešení) |
-| 4 | **Implementovat** webovou aplikaci s Docker kontejnerizací | ✅ Hotovo (`generator.py`, `solver.py`, `scenarios.py`, `grader.py`, `exporter.py`, `database.py`, `Dockerfile`, `docker-compose.yml`) | 📝 Připraveno pro Kapitolu 5 (Implementace) |
-| 5 | **Ověřit funkčnost** standardními testy | ✅ Hotovo (**66 automatizovaných Pytest testů** + GitHub Actions CI pipeline) | ✅ Kapitola 6 napsána (hodnocení vyučujícím čeká na doplnění) |
-| 6 | **Zhodnotit** navržené řešení | ✅ Podklady kompletní | 📝 Připraveno pro Kapitolu 6 a Závěr |
+| 4 | **Implementovat** webovou aplikaci s Docker kontejnerizací | ✅ Hotovo (`generator.py`, `solver.py`, `scenarios.py`, `grader.py`, `exporter.py`, `database.py`, `Dockerfile`, `docker-compose.yml`) | ✅ Hotovo — Kapitola 5 (Implementace) |
+| 5 | **Ověřit funkčnost** standardními testy | ✅ Hotovo (**68 automatizovaných Pytest testů** + GitHub Actions CI pipeline) | ✅ Hotovo — Kapitola 6 (hodnocení vyučujícím čeká na doplnění) |
+| 6 | **Zhodnotit** navržené řešení | ✅ Podklady kompletní | ✅ Hotovo — Kapitola 6 a Závěr |
 
 ---
 

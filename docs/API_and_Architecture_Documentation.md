@@ -24,7 +24,7 @@ aplikace_ver_2/
 │   ├── exporter.py        # Export a import formátu .tg, CSV, JSON, ZIP
 │   ├── templates/         # HTML šablony (Jinja2: index, teaching, exam, generate, result, export, visualize, documentation)
 │   └── static/            # CSS styly, JS SVG editor/krokování a vygenerované PNG/HTML grafy
-├── tests/                 # Automatizované testy (Pytest — 66 testů)
+├── tests/                 # Automatizované testy (Pytest — 68 testů)
 │   ├── conftest.py        # Konfigurace testovacího prostředí (TESTING=1)
 │   ├── test_api.py        # Integrační testy FastAPI endpointů, výuky a písemek
 │   ├── test_generator.py  # Unit testy generátoru a didaktických garancí
@@ -86,12 +86,13 @@ Je použita hybridní relační struktura tří tabulek pro uložení normalizov
 - **`GET /api/graph/{graph_id}/shortest_path`**: Dynamicky přepočítá nejkratší cestu mezi libovolnými uzly `source` a `target`.
 - **`POST /api/graph/{graph_id}/grade`**: Sémantický validátor studentských odpovědí (Grader v2) pro minimální kostru, nejkratší cestu a topologické uspořádání.
 - **`POST /api/graph/{graph_id}/tag`**: Aktualizuje uživatelský štítek (`tag`) daného grafu.
+- **`POST /api/graph/{graph_id}/save_positions`**: Uloží ručně upravené souřadnice uzlů z přehrávače kroků (`/visualize/{id}`) do tabulky `graph_positions` a na serveru přegeneruje čistý tiskový PNG obrázek grafu (bez barevného zvýraznění kroků algoritmu).
 - **`POST /api/graph/{graph_id}/save_png`**: Uloží upravené souřadnice uzlů z prohlížeče do tabulky `graph_positions` a přepíše statický PNG náhled grafu.
 - **`POST /api/graph/{graph_id}/delete`** a **`POST /api/graphs/delete-all`**: Smaže jeden nebo všechny grafy včetně souvisejících statických souborů.
 - **`GET /api/visualize/{graph_id}/{algorithm}`**: Vrátí pole diskrétních kroků zvoleného algoritmu pro animaci na SVG plátně.
 
 ## 4. Automatizované testy (Test Suite)
-Kritické procesy a výpočty jsou pokryty sadou **66 automatizovaných testů** postavených na knihovně `pytest`. Při nastavení proměnné prostředí `TESTING=1` (v `tests/conftest.py`) běží testy nad izolovanou dočasnou databází `test_graphs.db`.
+Kritické procesy a výpočty jsou pokryty sadou **68 automatizovaných testů** postavených na knihovně `pytest`. Při nastavení proměnné prostředí `TESTING=1` (v `tests/conftest.py`) běží testy nad izolovanou dočasnou databází `test_graphs.db`.
 
 ### Rozdělení testů
 1. **`test_solver.py`**

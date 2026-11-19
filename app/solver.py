@@ -509,7 +509,7 @@ def boruvka_steps(G: nx.Graph) -> dict:
 def dijkstra_steps(G: nx.Graph, source: int, target: int) -> dict:
     """
     Dijkstrův algoritmus — krok po kroku pro vizualizaci.
-    Priority queue, relakace hran, finální cesta.
+    Priority queue, relaxace hran, finální cesta.
 
     Returns:
         dict s klíči: algorithm, steps, result_edges, total_weight, error
