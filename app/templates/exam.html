@@ -120,7 +120,7 @@
             <label class="form-label small text-muted mb-1">Typ slovního zadání nad tímto grafem</label>
             <select name="scenario" id="scenarioSelect" class="form-select form-select-sm" onchange="toggleNodeSelectors()">
                 <option value="dijkstra" {% if scenario.scenario_type == 'dijkstra' %}selected{% endif %}>Nejkratší cesta (Dijkstra — logistika)</option>
-                <option value="dijkstra_stopover" {% if scenario.scenario_type == 'dijkstra_stopover' %}selected{% endif %}>Trasa s povinnou mezizastávkou (bez opakování hran)</option>
+                <option value="dijkstra_stopover" {% if scenario.scenario_type == 'dijkstra_stopover' %}selected{% endif %}>Trasa s povinnou mezizastávkou (prostá cesta)</option>
                 <option value="kruskal" {% if scenario.scenario_type == 'kruskal' %}selected{% endif %}>Minimální kostra sítě (Kruskal — optická síť)</option>
                 <option value="bellman_ford" {% if scenario.scenario_type == 'bellman_ford' %}selected{% endif %}>Záporné ohodnocení (Bellman-Ford — finance)</option>
                 <option value="bridges" {% if scenario.scenario_type == 'bridges' %}selected{% endif %}>Kritické spoje a uzly (Mosty a artikulace)</option>
@@ -201,7 +201,7 @@
 
     <!-- Vyobrazení grafu -->
     <div class="text-center my-3">
-        <img src="{{ graph.png_path }}" alt="Graf zadání" class="img-fluid rounded border" style="max-height: 360px; object-fit: contain; background: #ffffff;">
+        <img src="{{ graph.png_path }}{% if png_v %}?v={{ png_v }}{% endif %}" alt="Graf zadání" class="img-fluid rounded border" style="max-height: 360px; object-fit: contain; background: #ffffff;">
         <div class="text-muted small mt-1">Obrázek: Zkoumaná síť (uzly jsou označeny písmenem i číselným indexem)</div>
     </div>
 

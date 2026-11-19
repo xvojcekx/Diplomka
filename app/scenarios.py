@@ -166,7 +166,7 @@ def _find_edge_disjoint_stopover_path(
         b_p2: List[int] = []
         b_l1 = 0
         b_l2 = 0
-        for p1 in simple_paths_s_m[:40]:
+        for p1 in simple_paths_s_m[:250]:
             if avoid_vertices and end_node in p1[:-1]:
                 continue
             len1 = path_weight(G, p1)
@@ -195,16 +195,19 @@ def _find_edge_disjoint_stopover_path(
                 continue
         return b_tot, b_p1, b_p2, b_l1, b_l2
 
-    # Nejprve preferuj vrcholově prostou cestu S -> M -> T (bez vracení přes již navštívené uzly),
-    # teprve pokud neexistuje, povol opakování uzlu při zachování hranové disjunktnosti.
+    # Hledej primárně vrcholově i hranově prostou cestu S -> M -> T;
+    # teprve pokud neexistuje (např. mezizastávka za artikulací), povol opakování uzlu při zachování hranové disjunktnosti.
+    vertex_simple = True
     best_total, best_p1, best_p2, best_len1, best_len2 = _search_disjoint(avoid_vertices=True)
     if best_total is None:
+        vertex_simple = False
         best_total, best_p1, best_p2, best_len1, best_len2 = _search_disjoint(avoid_vertices=False)
 
     if best_total is not None:
         return {
             "valid": True,
             "edge_disjoint": True,
+            "vertex_simple": vertex_simple,
             "p1": best_p1,
             "p2": best_p2,
             "len1": best_len1,
@@ -223,6 +226,7 @@ def _find_edge_disjoint_stopover_path(
     return {
         "valid": bool(p1 and p2),
         "edge_disjoint": False,
+        "vertex_simple": False,
         "p1": p1,
         "p2": p2,
         "len1": d1,
@@ -381,6 +385,7 @@ def _scenario_dijkstra_stopover(
     total_len = stopover_res["total_distance"]
     full_path = stopover_res["full_path"]
     is_disjoint = stopover_res["edge_disjoint"]
+    is_vertex_simple = stopover_res.get("vertex_simple", False)
 
     s_lbl = node_to_letter(start_node)
     m_lbl = node_to_letter(mid_node)
@@ -390,11 +395,11 @@ def _scenario_dijkstra_stopover(
     story = (
         f"Doručovací dodávka vyjíždí z centrálního skladu <strong>{s_lbl} ({start_node})</strong> a musí dovézt zboží "
         f"do cílové pobočky <strong>{t_lbl} ({end_node})</strong>. Cestou se však musí povinně zastavit na překladišti "
-        f"<strong>{m_lbl} ({mid_node})</strong> k naložení palet. Z důvodu uzavírek a jednosměrného provozu "
-        f"<strong>nesmí řidič žádný silniční úsek (hranu) projet dvakrát</strong>."
+        f"<strong>{m_lbl} ({mid_node})</strong> k naložení palet. Z důvodu dopravních omezení a pravidel rozvozového plánu "
+        f"<strong>nesmí řidič žádný uzel (křižovatku) ani silniční úsek (hranu) projet dvakrát</strong>."
     )
     questions = [
-        f"Nalezněte nejkratší trasu z <strong>{s_lbl}</strong> do <strong>{t_lbl}</strong> s povinnou mezizastávkou v uzlu <strong>{m_lbl}</strong> bez opakování hran.",
+        f"Nalezněte nejkratší prostou cestu z <strong>{s_lbl}</strong> do <strong>{t_lbl}</strong> s povinnou mezizastávkou v uzlu <strong>{m_lbl}</strong> (bez opakování vrcholů i hran).",
         f"Zapište zvlášť 1. etapu ({s_lbl} → {m_lbl}) a 2. etapu ({m_lbl} → {t_lbl}) a jejich dílčí časy jízdy.",
         f"Porovnejte nalezenou trasu s přímou nejkratší cestou {s_lbl} → {t_lbl} (bez mezizastávky) a vyčíslete časové zdržení."
     ]
@@ -405,18 +410,19 @@ def _scenario_dijkstra_stopover(
         "<thead class='table-light'><tr><th>Úsek trasy</th><th>Posloupnost uzlů</th><th>Doba jízdy (min)</th></tr></thead>"
         "<tbody>"
         f"<tr><td>1. etapa ({s_lbl} → {m_lbl})</td><td>&nbsp;</td><td>&nbsp;</td></tr>"
-        f"<tr><td>2. etapa ({m_lbl} → {t_lbl}, bez použitých hran)</td><td>&nbsp;</td><td>&nbsp;</td></tr>"
+        f"<tr><td>2. etapa ({m_lbl} → {t_lbl}, bez již použitých uzlů a hran)</td><td>&nbsp;</td><td>&nbsp;</td></tr>"
         f"<tr><td class='fw-bold'>Celková trasa ({s_lbl} → {m_lbl} → {t_lbl})</td><td>&nbsp;</td><td>&nbsp;</td></tr>"
         f"<tr><td>Přímá trasa bez zastávky ({s_lbl} → {t_lbl}) / Zdržení</td><td>&nbsp;</td><td>&nbsp;</td></tr>"
         "</tbody></table>"
     )
 
     delay = (total_len - direct_len) if (total_len is not None and direct_len is not None) else "—"
-    disjoint_badge = (
-        "<span class='badge bg-success'>Splněno — žádná hrana se neopakuje</span>"
-        if is_disjoint
-        else "<span class='badge bg-warning text-dark'>Pozor: uzel je za mostem, nutno použít hranu opakovaně</span>"
-    )
+    if is_vertex_simple:
+        disjoint_badge = "<span class='badge bg-success'>Splněno — prostá cesta (žádný uzel ani hrana se neopakuje)</span>"
+    elif is_disjoint:
+        disjoint_badge = "<span class='badge bg-warning text-dark'>Pozor: neexistuje vrcholově prostá cesta, zobrazen hranově disjunktní sled</span>"
+    else:
+        disjoint_badge = "<span class='badge bg-warning text-dark'>Pozor: uzel leží za mostem, nutno použít hranu opakovaně</span>"
 
     teacher_solution = (
         f"<p class='mb-1'><strong>1. etapa ({s_lbl} → {m_lbl}):</strong> {' → '.join(node_to_letter(n) for n in p1)} (délka: <strong>{len1} min</strong>)</p>"
@@ -431,7 +437,7 @@ def _scenario_dijkstra_stopover(
         "scenario_type": "dijkstra_stopover",
         "mid_node": mid_node,
         "title": f"Trasa s povinnou mezizastávkou ({s_lbl} → {m_lbl} → {t_lbl})",
-        "algorithm_badge": "Dijkstra s mezizastávkou (bez opakování hran)",
+        "algorithm_badge": "Dijkstra s mezizastávkou (prostá cesta)",
         "story": story,
         "questions": questions,
         "student_table_html": student_table_html,
@@ -756,7 +762,7 @@ def _scenario_max_flow(G: nx.DiGraph, graph_data: dict, start_node: int, end_nod
     sol = ford_fulkerson_max_flow(G, start_node, end_node)
     max_flow = sol.get("max_flow", 0)
     cut_edges = sol.get("min_cut_edges") or []
-    cut_partition = sol.get("min_cut_partition") or [[], []]
+    cut_partition = sol.get("min_cut_sets") or sol.get("min_cut_partition") or [[], []]
     flow_edges = sol.get("flow_edges") or []
 
     cut_edge_strs = [
