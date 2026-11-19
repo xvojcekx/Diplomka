@@ -258,7 +258,31 @@ class TestExportEndpoints:
             r_exam = client.get(loc)
             assert r_exam.status_code == 200, f"Exam page failed for preset {preset}"
             assert "Autorské řešení" in r_exam.text
+            if preset == "max_flow":
+                assert "Množina S = {}," not in r_exam.text
+                assert "Množina T = {}" not in r_exam.text
+            if preset == "dijkstra_stopover":
+                assert "jednosměrného provozu" not in r_exam.text
             assert "table" in r_exam.text
+
+    def test_save_positions_and_visualize_labels(self, client):
+        tg_sample = "u A;\nu B;\nu C;\nh A > B 3 :h1;\nh B > C 4 :h2;\nh A > C 10 :h3;"
+        resp = client.post("/import-tg", data={"tg_content": tg_sample, "directed": False}, follow_redirects=False)
+        assert resp.status_code == 303
+        graph_id = resp.headers["location"].split("/")[-1]
+
+        vis_api = client.get(f"/api/visualize/{graph_id}/dijkstra?source=0&target=2")
+        assert vis_api.status_code == 200
+        vdata = vis_api.json()
+        assert vdata["algorithm_name"] == "Dijkstrův algoritmus"
+        assert "A (0)" in vdata["steps"][0]["description"]
+
+        save_res = client.post(
+            f"/api/graph/{graph_id}/save_positions",
+            json={"positions": {"0": {"x": 100, "y": 100}, "1": {"x": 300, "y": 120}, "2": {"x": 500, "y": 200}}},
+        )
+        assert save_res.status_code == 200
+        assert save_res.json()["status"] == "success"
 
 
 

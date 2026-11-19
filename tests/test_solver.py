@@ -324,3 +324,23 @@ class TestAdvancedAlgorithmsAndGrader:
         assert validate_topological_sort(dag, "u0, u2, u1, u3")["passed"] is True
         assert validate_topological_sort(dag, "u0, u3, u1, u2")["passed"] is False
 
+    def test_scenario_max_flow_min_cut_sets_not_empty(self):
+        from scenarios import build_scenario_for_graph
+
+        graph_data = {
+            "graph_id": "test-mf",
+            "config": {"directed": True, "weighted": True},
+            "properties": {"node_count": 4, "edge_count": 4},
+            "edge_list": [
+                {"source": 0, "target": 1, "weight": 5},
+                {"source": 0, "target": 2, "weight": 3},
+                {"source": 1, "target": 3, "weight": 2},
+                {"source": 2, "target": 3, "weight": 4},
+            ],
+        }
+        scen = build_scenario_for_graph(graph_data, scenario_type="max_flow", source=0, target=3)
+        assert "Množina S = {" in scen["teacher_solution"]
+        assert "Množina S = {}," not in scen["teacher_solution"]
+        assert "Množina T = {}" not in scen["teacher_solution"]
+        assert "A" in scen["teacher_solution"] and "D" in scen["teacher_solution"]
+
